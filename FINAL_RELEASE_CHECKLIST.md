@@ -9,14 +9,15 @@
 - [x] 暂存文件与发布分支祖先的凭据/禁止资产扫描完成；本地三个凭据值（含 GIT_TOKEN）精确匹配检查均无命中。
 - [x] 9,127 个原有源码、实验代码、数据和结果 SHA-256 全部保持不变。
 - [x] 本地内容提交完成；后续仅补记本清单中的提交号。
-- [ ] GitHub 发布到用户指定的既有仓库 `chenday7621/kefu_agent` 的 `main`；发布后核对远程 SHA。
+- [x] GitHub 已发布到用户指定的既有仓库 `chenday7621/kefu_agent` 的 `main`，远程 SHA 已核对。
 - [x] 没有执行 benchmark、DeepSeek 请求、模型推理、依赖安装或 Agent 修改。
 
 ## Git
 
-- 本地分支：`release/agent-optimization`。
+- 发布分支：`main`，跟踪 `origin/main`；原本地历史分支 `release/agent-optimization` 保留。
 - 提交说明：`Finalize Parlant agent optimization project`。
-- 发布内容 commit：`53f13acb6e55283d81150cb140f115571cce3e72`。
+- GitHub 首次发布快照 commit：`020cf4cada6736b656f3182f45c3024d35f28146`。
+- 原本地整理 commit：`53f13acb6e55283d81150cb140f115571cce3e72`（仅留本地历史分支）。
 - GitHub 发布地址：[chenday7621/kefu_agent](https://github.com/chenday7621/kefu_agent)，目标分支 `main`。
 - origin：`https://github.com/chenday7621/kefu_agent.git`；原 Parlant 来源保留为 upstream：`https://github.com/emcie-co/parlant.git`。
 - 提交作者：若本地未配置身份，使用自动整理身份 `Codex <codex@localhost>`，不冒用上游作者。
@@ -25,7 +26,7 @@
 
 公开保留上游 `src/`、许可证与项目配置，以及实验实现、展示 `configs/`、`docs/` 和最小 `requirements.txt`。`results/`、`_reviews/`、官方外部数据及权重不进入提交；既有 `REPRODUCE.md` 保留在本地，公开入口见 `docs/reproduce.md`。原实验的 Git/hash 校验和快照依赖未修改，因此 fresh clone 不能在没有本地资产与冻结文件时一键重放历史成绩。
 
-内容 commit 的 SHA 通过后续仅修改本清单的文档提交记录，避免将自身 SHA 写入自身内容造成自引用。当前 HEAD 可用 `git rev-parse HEAD` 查看。
+首次发布快照的 SHA 通过后续仅修改本清单的文档提交记录，避免将自身 SHA 写入自身内容造成自引用。当前 HEAD 可用 `git rev-parse HEAD` 查看，并与 `git ls-remote origin refs/heads/main` 核对。
 
 本地检查明细存于忽略的 `runtime-data/release-preparation/`，不作为公开审计包上传。
 
@@ -38,3 +39,7 @@
 ## 发布认证
 
 GitHub token 只读取根目录忽略的 `.env` 中的 `GIT_TOKEN`，通过本地临时 askpass 交给 Git，不嵌入 remote URL 或 Git 配置，不启用 credential 存储。只推送指定 `main` 分支，不推送标签或本地工具快照。
+
+## 发布历史
+
+原仓库是上游 tag 的浅克隆，首次带上游历史的 push 因缺少对象被 GitHub 拒收，未写入远程 main。随后使用与已检查内容完全相同的文件树建立独立发布根提交，正常推送到空仓库 main；没有 force push，也没有删除原本地历史、源码或实验资产。
