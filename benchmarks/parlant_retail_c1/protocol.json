@@ -1,0 +1,49 @@
+{
+  "name": "C1 matching batch pilot10 vs concurrent O1B CONTROL",
+  "split": "train",
+  "task_ids": [
+    "57",
+    "54",
+    "24",
+    "110",
+    "78",
+    "14",
+    "22",
+    "48",
+    "85",
+    "95"
+  ],
+  "groups": [
+    "CONTROL",
+    "C1"
+  ],
+  "seed": 42,
+  "max_steps": 60,
+  "max_errors": 3,
+  "timeout_seconds_per_task": 900,
+  "adapter_tool_wait_seconds": 180,
+  "max_infrastructure_recoveries_per_unit": 1,
+  "native_same_class_second_occurrence": "stop",
+  "persistent_schema_errors": "pause after same schema category fails across two units, or three failed parses in one unit",
+  "scored_reruns": 0,
+  "planned_executions": 20,
+  "OMP_NUM_THREADS": "2",
+  "MKL_NUM_THREADS": "2",
+  "model": "deepseek/deepseek-chat",
+  "user_judge_args": {
+    "temperature": 0,
+    "num_retries": 0,
+    "timeout": 90
+  },
+  "batch_policies": {
+    "CONTROL": "BasicOptimizationPolicy unchanged",
+    "C1": "same default except floor 2 for four ordinary matching batch classes; capped by category count; other defaults unchanged"
+  },
+  "engineering_target": {
+    "success_count_at_least_control": true,
+    "mean_customer_cost_reduction_at_least": 0.2,
+    "no_new_systematic_parsing_or_business_errors": true
+  },
+  "execution_order": "saved sample order; alternate C1 then CONTROL and CONTROL then C1; first C1 formal is canary; no extra paid prechecks",
+  "external_model_seed_deterministic": false
+}

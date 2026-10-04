@@ -1,0 +1,52 @@
+{
+  "repo": "BAAI/bge-base-en-v1.5",
+  "revision": "a5beb1e3e68b9ab74eb54cfd186867f64f240e1a",
+  "files": {
+    "README.md": {
+      "sha256": "fd29e6117a8c2bc83f8eafb73f261d35341702dcd95c9cc0b34f5be75afa8231",
+      "bytes": 94551
+    },
+    "config.json": {
+      "sha256": "bc00af31a4a31b74040d73370aa83b62da34c90b75eb77bfa7db039d90abd591",
+      "bytes": 777
+    },
+    "tokenizer.json": {
+      "sha256": "d241a60d5e8f04cc1b2b3e9ef7a4921b27bf526d9f6050ab90f9267a1f9e5c66",
+      "bytes": 711396
+    },
+    "tokenizer_config.json": {
+      "sha256": "9261e7d79b44c8195c1cada2b453e55b00aeb81e907a6664974b4d7776172ab3",
+      "bytes": 366
+    },
+    "special_tokens_map.json": {
+      "sha256": "b6d346be366a7d1d48332dbc9fdf3bf8960b5d879522b7799ddba59e76237ee3",
+      "bytes": 125
+    },
+    "vocab.txt": {
+      "sha256": "07eced375cec144d27c900241f3e339478dec958f92fddbc551f295c992038a3",
+      "bytes": 231508
+    },
+    "model.safetensors": {
+      "sha256": "c7c1988aae201f80cf91a5dbbd5866409503b89dcaba877ca6dba7dd0a5167d7",
+      "bytes": 437955512
+    },
+    "1_Pooling/config.json": {
+      "sha256": "c9bef85e8bbf4b2eab4941b3fb62bd33f88686748b478f2e264d256472d9643b",
+      "bytes": 190
+    },
+    "sentence_bert_config.json": {
+      "sha256": "84e39fda68ccbff05bfa723ae9c0e70e23e2ec373b76e0f8c6e71af72a693cbf",
+      "bytes": 52
+    },
+    "modules.json": {
+      "sha256": "84e40c8e006c9b1d6c122e02cba9b02458120b5fb0c87b746c41e0207cf642cf",
+      "bytes": 349
+    }
+  },
+  "instruction": "Represent this sentence for searching relevant passages: ",
+  "pooling": "CLS",
+  "normalize": "L2",
+  "device": "CPU",
+  "precision": "float32",
+  "model_card": "MIT"
+}

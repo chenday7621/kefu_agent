@@ -1,0 +1,78 @@
+{
+  "source": "Previously frozen local audit reports; copied summaries only, no benchmark rerun",
+  "retail": {
+    "benchmark": "tau³-bench Retail official test, custom DeepSeek configuration",
+    "tasks": 40,
+    "repeats_per_arm": 2,
+    "seeds": [
+      42,
+      43
+    ],
+    "baseline": "B0-R1",
+    "final": "O1-B",
+    "baseline_successes": 30,
+    "final_successes": 47,
+    "scored_executions_per_arm": 80,
+    "baseline_success_rate": 0.375,
+    "final_success_rate": 0.5875,
+    "delta_percentage_points": 21.25,
+    "limitation": "Includes a user-authorized infrastructure recovery budget exception; no statistical significance claim"
+  },
+  "rag": {
+    "benchmark": "MTRAG human Cloud custom conversation-level HOLDOUT; not official/full MTRAG test",
+    "split_seed": 42,
+    "dev_conversations": 15,
+    "holdout_conversations": 11,
+    "holdout_tasks": 89,
+    "annotated_tasks": 83,
+    "unannotated_tasks": 6,
+    "unannotated_metric": "unavailable",
+    "corpus_passages": 72442,
+    "parent_documents": 8578,
+    "metrics": {
+      "R0": {
+        "annotated_tasks": 83,
+        "unannotated_tasks": 6,
+        "Recall@5": 0.22309236947791164,
+        "Recall@10": 0.2672690763052209,
+        "nDCG@5": 0.1880952905068371,
+        "nDCG@10": 0.20648085314780534,
+        "Recall@10_zero_tasks": 53
+      },
+      "R1-B": {
+        "annotated_tasks": 83,
+        "unannotated_tasks": 6,
+        "Recall@5": 0.3654618473895582,
+        "Recall@10": 0.4060240963855422,
+        "nDCG@5": 0.3329305230884347,
+        "nDCG@10": 0.3522819622011928,
+        "Recall@10_zero_tasks": 35
+      }
+    },
+    "delta_recall5_percentage_points": 14.236947791164658,
+    "answer_targets": 11,
+    "formal_paired_answers": 22,
+    "fact_accuracy": "unavailable; no factual judge",
+    "asset_sha256": {
+      "benchmarks/parlant_rag/data/split.json": "abde5dd26d3cd9b8626d3e5e6b5e0ccb1c2c0fab6c35f7427674da6871d158bf",
+      "benchmarks/parlant_rag/data/cloud_passages.jsonl": "e7d04a1e90344fe1231c3cd5e760c047748bdd42d620924cac21a8bf5ca0e295",
+      "benchmarks/parlant_rag_r1/model_lock.json": "a5f163f0a77722591cb3fdfdaf82e16ca37d62fb4a830e1cf7a5fea2c1405f70",
+      "benchmarks/parlant_rag_r1/index/corpus.npy": "82c1f95fc53d6f08277568bb90bc5a58374071a973a3e32f6df556eca243b469",
+      "benchmarks/parlant_rag_r1/index/queries.npy": "cb4f48ac58c608beba0b01a4d4266833e2ef46794d0ed01cb105f2afbdd8a9aa",
+      "benchmarks/parlant_rag_r1/index/queries.json": "8e8e6fba6979e4f388676e71378368bf9f94ba831ac81b180e28fce42aa86c9a"
+    }
+  },
+  "r2_ablation": {
+    "same_retrieval": true,
+    "same_target_turns": 11,
+    "new_control_answers": 11,
+    "evidence_answers": 11,
+    "control_lexical_f1": 0.295369927838313,
+    "evidence_lexical_f1": 0.28767364373634197,
+    "control_rouge_l": 0.2154589258220706,
+    "evidence_rouge_l": 0.2109094967840992,
+    "overall_generation_gain_observed": false,
+    "human_labels": "unreviewed",
+    "default": false
+  }
+}

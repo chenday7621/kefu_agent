@@ -1,0 +1,8 @@
+{
+  "review": "_reviews/20261004_021350_RAG_R1_RETRIEVAL",
+  "result": "results/mtrag_cloud_r1_20261004_021350",
+  "runtime": "runtime-data/mtrag-cloud-r1-20261004_021350",
+  "r0_base": "benchmarks/parlant_rag",
+  "r0_review": "_reviews/20261004_012144_RAG_R0_CLOUD",
+  "r0_result": "results/mtrag_cloud_r0_20261004_012144"
+}

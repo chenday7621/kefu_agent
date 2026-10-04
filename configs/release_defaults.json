@@ -1,0 +1,37 @@
+{
+  "purpose": "Frozen showcase version manifest; does not alter runtime code or dispatch runners",
+  "parlant_version": "3.3.2",
+  "provider": "DeepSeek official",
+  "requested_model": "deepseek-chat",
+  "transaction": {
+    "default": "O1-B",
+    "policy": "benchmarks/parlant_retail_o1b/policy_config.py",
+    "evaluation_runner": "benchmarks/parlant_retail_heldout/supervise.py",
+    "control": "B0-R1"
+  },
+  "rag": {
+    "default": "R1-B",
+    "model": "BAAI/bge-base-en-v1.5",
+    "revision": "a5beb1e3e68b9ab74eb54cfd186867f64f240e1a",
+    "query": "current user question only",
+    "query_instruction": "Represent this sentence for searching relevant passages: ",
+    "pooling": "CLS",
+    "normalize": "L2",
+    "precision": "float32",
+    "device": "CPU",
+    "max_length": 512,
+    "passage_input": "title + space + exact official passage text",
+    "ranking": "dot product descending; full passage ID ascending for ties",
+    "retrieval_top_k": 10,
+    "answer_top_k": 5,
+    "generation_rules": "original three RAG rules",
+    "composition_mode": "CANNED_FLUID",
+    "optimization_policy": "BasicOptimizationPolicy",
+    "evaluation_runner": "benchmarks/parlant_rag_holdout/run.py"
+  },
+  "ablation_only": [
+    "Retail C1 batching/cost experiment",
+    "RAG R2 Evidence-aware Generation"
+  ],
+  "benchmark_execution_during_release": false
+}

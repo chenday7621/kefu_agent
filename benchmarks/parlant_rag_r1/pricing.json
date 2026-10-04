@@ -1,0 +1,24 @@
+{
+  "checked_client_date": "2026-10-04",
+  "source": "https://api-docs.deepseek.com/quick_start/pricing/",
+  "retrieval": "official pricing page verified with web tool before R1 generation",
+  "currency": "USD",
+  "per_million_tokens": {
+    "deepseek-flash": {
+      "off_peak": {
+        "cache_hit_input": 0.003,
+        "cache_miss_input": 0.15,
+        "output": 0.6
+      },
+      "peak": {
+        "cache_hit_input": 0.006,
+        "cache_miss_input": 0.3,
+        "output": 1.2
+      }
+    }
+  },
+  "peak": "Monday-Friday UTC [01:00,04:00) and [06:00,10:00), excluding Chinese public holidays",
+  "estimate_policy": "apply only to observed deepseek-flash and complete raw cache usage; unknown model/usage => unavailable; invoice unavailable",
+  "legacy_request": "deepseek-chat retained per existing official adapter; response model observed separately",
+  "verified_utc": "2026-10-03 18:27 UTC"
+}

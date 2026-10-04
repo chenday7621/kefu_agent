@@ -1,0 +1,81 @@
+{
+  "candidates": [
+    "R0",
+    "R1-A",
+    "R1-B",
+    "R1-C",
+    "R1-D"
+  ],
+  "history_query": "previous user text + newline + previous agent text + newline + current user text; first round current only; no role labels",
+  "history_scope": "exact official existing speaker/text only; no generated history or annotations",
+  "dense_model": "BAAI/bge-base-en-v1.5",
+  "query_instruction": "Represent this sentence for searching relevant passages: ",
+  "passage_input": "title + space + exact original text, same as BM25 fields; no query instruction",
+  "pooling": "CLS final hidden state; L2 normalize; float32 weights and embeddings",
+  "max_length": 512,
+  "truncation": "official model token limit, right truncation; no corpus edit or extra chunks; full passages still returned",
+  "dense_ranking": "dot product between L2 normalized embeddings, score descending; full passage_id ascending tie",
+  "rrf": {
+    "routes": [
+      "R1-A",
+      "R1-C"
+    ],
+    "each_route_top_k": 100,
+    "k": 60,
+    "weights": [
+      1,
+      1
+    ],
+    "formula": "sum(1/(60+rank)), rank starts 1",
+    "tie": "full passage_id ascending"
+  },
+  "selection": {
+    "ranking": [
+      "Recall@5",
+      "nDCG@5",
+      "Recall@10"
+    ],
+    "tie_tolerance": 1e-12,
+    "remaining_tie": "candidate name ascending",
+    "absolute_recall5_gain_min": 0.05,
+    "ndcg5_not_lower": true,
+    "no_parameter_tuning": true
+  },
+  "grouping": {
+    "current_turn": [
+      "1",
+      "2-3",
+      "4-6",
+      "7+"
+    ],
+    "prior_history_messages": [
+      "0",
+      "1-4",
+      "5-10",
+      "11+"
+    ],
+    "history_length_words": [
+      "0",
+      "1-100",
+      "101-300",
+      "301+"
+    ]
+  },
+  "embedding_execution": {
+    "device": "cpu",
+    "batch_size": 16,
+    "torch_threads": 6,
+    "interop_threads": 1,
+    "attention": "sdpa",
+    "sequence_order": "sort by token length then passage_id to reduce batch padding; one committed embedding per passage",
+    "cache": "independent float32 numpy mmap, batch journal and checkpoint; reuse completed rows only"
+  },
+  "eval_population": "same 105 DEV with qrels; other 11 unavailable",
+  "selection_saved_before_metrics": true,
+  "generation_max_new_targets": 10,
+  "R0_generation": false,
+  "HOLDOUT_run": false,
+  "paid_query_rewrite": false,
+  "official_rewrite_read": false,
+  "reranker": false
+}

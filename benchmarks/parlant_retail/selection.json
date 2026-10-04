@@ -1,0 +1,12 @@
+{
+  "benchmark": "tau2-bench v1.0.1 retail text",
+  "split": "train",
+  "selection_method": "first five IDs in official data/tau2/domains/retail/split_tasks.json train list, in listed order; frozen before inspecting task bodies or running any task",
+  "task_ids": ["0", "1", "2", "3", "4"],
+  "seed": 42,
+  "max_steps": 60,
+  "max_errors": 3,
+  "timeout_seconds_per_task": 900,
+  "adapter_tool_wait_seconds": 180,
+  "retry_count": 0
+}

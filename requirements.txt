@@ -1,0 +1,2 @@
+# Dependencies already declared by this project; exact resolution is in uv.lock.
+-e .[deepseek]

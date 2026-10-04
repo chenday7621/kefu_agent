@@ -1,0 +1,40 @@
+{
+  "name": "RAG R0 Cloud",
+  "query": "current user text only",
+  "retrieval_top_k": 10,
+  "answer_top_k": 5,
+  "bm25": {
+    "k1": 1.2,
+    "b": 0.75,
+    "idf": "log(1+(N-df+0.5)/(df+0.5))",
+    "tokenizer": "Unicode casefold + re.findall(r\"\\b\\w+\\b\"); no stemming/stopwords",
+    "indexed_fields": "title + space + exact official text",
+    "query_tf": "distinct terms once, sorted",
+    "tie_break": "score descending, full passage_id ascending",
+    "chunking": "none, complete official passage_level corpus",
+    "zero_score": "include to fixed K"
+  },
+  "model": "deepseek-chat",
+  "embedding": "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2 offline CPU",
+  "batching": "unmodified BasicOptimizationPolicy",
+  "seed": 42,
+  "per_sample_seconds": 180,
+  "infrastructure_recovery_max": 1,
+  "startup_initializations": 1,
+  "llm_judge": false,
+  "holdout_run": false,
+  "rules": [
+    {
+      "condition": "The user asks about IBM Cloud information or technical documentation",
+      "action": "Answer factual questions using the retrieved IBM Cloud passages. Use only facts supported by these passages; use the existing conversation only to understand the question."
+    },
+    {
+      "condition": "The response makes a factual claim supported by a retrieved passage",
+      "action": "Give the source by citing the exact full passage document_id in square brackets, and include its source URL when helpful. Never invent a source ID."
+    },
+    {
+      "condition": "The retrieved passages do not provide enough evidence, or the user question is ambiguous",
+      "action": "Clearly explain the evidence limitation or ask a concise clarification. Do not infer missing technical facts."
+    }
+  ]
+}

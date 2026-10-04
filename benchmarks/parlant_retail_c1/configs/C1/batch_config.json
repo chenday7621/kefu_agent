@@ -1,0 +1,15 @@
+{
+  "group": "C1",
+  "base_policy": "BasicOptimizationPolicy v3.3.2",
+  "extension": "C1BatchPolicy",
+  "ordinary_batch_floor": 2,
+  "eligible_categories": [
+    "GenericActionableGuidelineMatchingBatch",
+    "GenericObservationalGuidelineMatchingBatch",
+    "GenericPreviouslyAppliedActionableGuidelineMatchingBatch",
+    "GenericPreviouslyAppliedActionableCustomerDependentGuidelineMatchingBatch"
+  ],
+  "count_cap": true,
+  "low_criticality_unchanged": true,
+  "all_other_policy_methods_unchanged": true
+}

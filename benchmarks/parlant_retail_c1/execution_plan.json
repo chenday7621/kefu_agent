@@ -1,0 +1,142 @@
+[
+  {
+    "group": "C1",
+    "task_id": "57",
+    "seed": 42,
+    "unit_id": "C1_t57",
+    "order": 1
+  },
+  {
+    "group": "CONTROL",
+    "task_id": "57",
+    "seed": 42,
+    "unit_id": "CONTROL_t57",
+    "order": 2
+  },
+  {
+    "group": "CONTROL",
+    "task_id": "54",
+    "seed": 42,
+    "unit_id": "CONTROL_t54",
+    "order": 3
+  },
+  {
+    "group": "C1",
+    "task_id": "54",
+    "seed": 42,
+    "unit_id": "C1_t54",
+    "order": 4
+  },
+  {
+    "group": "C1",
+    "task_id": "24",
+    "seed": 42,
+    "unit_id": "C1_t24",
+    "order": 5
+  },
+  {
+    "group": "CONTROL",
+    "task_id": "24",
+    "seed": 42,
+    "unit_id": "CONTROL_t24",
+    "order": 6
+  },
+  {
+    "group": "CONTROL",
+    "task_id": "110",
+    "seed": 42,
+    "unit_id": "CONTROL_t110",
+    "order": 7
+  },
+  {
+    "group": "C1",
+    "task_id": "110",
+    "seed": 42,
+    "unit_id": "C1_t110",
+    "order": 8
+  },
+  {
+    "group": "C1",
+    "task_id": "78",
+    "seed": 42,
+    "unit_id": "C1_t78",
+    "order": 9
+  },
+  {
+    "group": "CONTROL",
+    "task_id": "78",
+    "seed": 42,
+    "unit_id": "CONTROL_t78",
+    "order": 10
+  },
+  {
+    "group": "CONTROL",
+    "task_id": "14",
+    "seed": 42,
+    "unit_id": "CONTROL_t14",
+    "order": 11
+  },
+  {
+    "group": "C1",
+    "task_id": "14",
+    "seed": 42,
+    "unit_id": "C1_t14",
+    "order": 12
+  },
+  {
+    "group": "C1",
+    "task_id": "22",
+    "seed": 42,
+    "unit_id": "C1_t22",
+    "order": 13
+  },
+  {
+    "group": "CONTROL",
+    "task_id": "22",
+    "seed": 42,
+    "unit_id": "CONTROL_t22",
+    "order": 14
+  },
+  {
+    "group": "CONTROL",
+    "task_id": "48",
+    "seed": 42,
+    "unit_id": "CONTROL_t48",
+    "order": 15
+  },
+  {
+    "group": "C1",
+    "task_id": "48",
+    "seed": 42,
+    "unit_id": "C1_t48",
+    "order": 16
+  },
+  {
+    "group": "C1",
+    "task_id": "85",
+    "seed": 42,
+    "unit_id": "C1_t85",
+    "order": 17
+  },
+  {
+    "group": "CONTROL",
+    "task_id": "85",
+    "seed": 42,
+    "unit_id": "CONTROL_t85",
+    "order": 18
+  },
+  {
+    "group": "CONTROL",
+    "task_id": "95",
+    "seed": 42,
+    "unit_id": "CONTROL_t95",
+    "order": 19
+  },
+  {
+    "group": "C1",
+    "task_id": "95",
+    "seed": 42,
+    "unit_id": "C1_t95",
+    "order": 20
+  }
+]

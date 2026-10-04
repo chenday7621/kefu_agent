@@ -1,0 +1,41 @@
+{
+  "checked_at": "2026-10-03T23:44:45.051397+08:00",
+  "source": "https://api-docs.deepseek.com/quick_start/pricing/",
+  "retrieval": "official-domain indexed document retrieved via web search; direct web fetch timed out",
+  "currency": "USD",
+  "unit": "per 1 million tokens",
+  "response_model": "deepseek-flash",
+  "off_peak": {
+    "cache_hit_input": 0.003,
+    "cache_miss_input": 0.15,
+    "output": 0.6
+  },
+  "peak": {
+    "cache_hit_input": 0.006,
+    "cache_miss_input": 0.3,
+    "output": 1.2
+  },
+  "peak_utc_weekdays": [
+    0,
+    1,
+    2,
+    3,
+    4
+  ],
+  "peak_utc_hour_ranges": [
+    [
+      1,
+      4
+    ],
+    [
+      6,
+      10
+    ]
+  ],
+  "public_holidays_off_peak": true,
+  "scope": "official listed rates applied to observed response model, not changing legacy deepseek-chat request",
+  "billing_assumption": "legacy request deepseek-chat observed historically as deepseek-flash; estimate only when current response is deepseek-flash and cache usage is complete",
+  "bill_or_invoice_retrieved": false,
+  "pricing_is_estimate_not_bill": true,
+  "engineering_target_cost_role": "all ten formal attempts customer_parlant including failed tasks and cleanup; startup/user/judge/abnormal separately"
+}
