@@ -93,3 +93,9 @@ HOLDOUT 的处理顺序如下，须先满足上述资产与 freeze 前置条件�
 [release_defaults.json](../configs/release_defaults.json) 声明展示选择 O1-B/R1-B，仅是版本清单，不是新增 runtime dispatcher。历史 runner 保留自己的固定比较协议；C1 和 R2 仅作消融源码记录，不会因这份清单自动执行。
 
 本次没有启动服务、调用 API、运行检索评分或新一轮优化。GitHub 展示仓库为 [chenday7621/kefu_agent](https://github.com/chenday7621/kefu_agent)，仅发布已检查的源码和展示文档。
+
+## GitHub CI 范围
+
+`Verify and Test` 运行 Python 3.12 的 `python scripts/verify_release.py`，仅检查 tracked 文件的 Python 语法、展示配置、公开文档链接、凭据模式及私有资产排除规则。它使用标准库和 Git，不导入 Agent 模块、不运行 benchmark 或模型，不需要 API key。继承的上游 `just test-*` 工作流依赖未公开的 justfile 和模型测试配置，已从自动发布检查中移除。
+
+该检查通过不代表完整 Parlant 单元/集成测试、实验复现或回答准确率通过；展示结果仍来自此前冻结实验。
