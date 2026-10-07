@@ -42,6 +42,14 @@ runtime-data/
 *.tar.gz
 *.tgz
 *.zip
+*.dump
+*.sql.gz
+*.sql.bz2
+*.core
+core.[0-9]*
+/core
+pgdata/
+postgres-data/
 benchmarks/tau2-bench/
 benchmarks/**/data/
 benchmarks/**/upstream_metadata/

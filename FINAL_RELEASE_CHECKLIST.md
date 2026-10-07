@@ -1,5 +1,22 @@
 # Final Release Checklist
 
+## APP-S1 应用发布整理（2026-10-07）
+
+本节补记最新应用源码发布，下面首次发布历史保持原样。当前分支 `main`，目标仍为 `origin` 的 `https://github.com/chenday7621/kefu_agent.git`；提交前HEAD为 `e121b45bb0e66709a33bc390ef483f717fdc5ccb`。本次提交的最终SHA由 `git rev-parse HEAD` 获取，避免写入自身SHA造成自引用。
+
+- [x] 根README改为 Parlant Customer Service Agent，分别说明事务应用、历史Retail和独立RAG能力，没有自动路由或生产准确率承诺。
+- [x] 原本机演示已是APP-S1、迁移001–005；六个实际MCP工具与模型schema一致，submit_confirmed_return仅暴露operation_id。
+- [x] 保留APP-EVAL-V1原33/40与合法13/16；APP-S1完成后的原评分15/16、新版语境16/16分别展示，注明8场景×2及跨日恢复限制。
+- [x] 保留Retail O1-B及RAG R1-B冻结实现/配置/结果，不重新评测或调用模型；本次发布不重启现有演示服务。
+- [x] 应用源码、001–005迁移、隔离评测/评分代码和必要应用文档加入公开范围；真实业务、会话、能力令牌及评测原始证据保持本地。
+- [x] .env.example使用明确密码占位符，DSN通过dotenv插值，不包含当前演示密码；既有.env未修改。
+- [x] 补充PG dump/压缩SQL、卷目录与core dump忽略规则；不删除本地运行证据。
+- [x] 4项无模型既有单元检查通过，包含40个固定退款语境用例及SDK兼容边界；73个应用Python文件语法检查通过。
+
+暂存集合的离线发布校验通过：1019个公开文件、482个Python语法检查；5个本地凭据值的精确匹配及有限凭据格式扫描无命中。114处敏感关键词为环境变量名、可信上下文参数、随机测试凭据生成及占位符，未包含真实值。14项忽略规则探针通过；新提交没有大型运行资产，既存上游文档GIF保留。`git diff --cached --check`提示一份原冻结评测源码末尾空行，保留其逐字hash，不为发布重写冻结文件。
+
+检查完成后正常commit/push，最终结果保存在忽略的 `runtime-data/release-preparation/` 并向用户报告。不使用force push，不写token到remote或认证配置，不创建release。历史自然语言failed记录及待复核项保持原样，无模型检查不冒称最新浏览器完整交互通过。
+
 - [x] 根目录 README 已整理为开源展示，保留上游归属与 Apache-2.0 许可。
 - [x] Transaction / RAG 文档及复现入口已整理；案例来自既有开发轨迹。
 - [x] 展示默认为 Retail **O1-B**、RAG **R1-B**；C1 / R2 仅作消融记录。

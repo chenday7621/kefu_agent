@@ -1,0 +1,2 @@
+# Additional application dependency only; Parlant/FastMCP reuse the project venv.
+psycopg[binary]==3.3.6

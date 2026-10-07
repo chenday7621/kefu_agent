@@ -1,0 +1,20 @@
+name: kefu-retail-demo
+services:
+  db:
+    image: postgres:16-bookworm
+    environment:
+      POSTGRES_DB: retail_demo
+      POSTGRES_USER: retail_demo
+      POSTGRES_PASSWORD: ${DEMO_DB_PASSWORD:?Copy .env.example to .env first}
+    ports:
+      - "127.0.0.1:${DEMO_DB_PORT:-55432}:5432"
+    volumes:
+      - retail_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U retail_demo -d retail_demo"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+    restart: unless-stopped
+volumes:
+  retail_pgdata:
