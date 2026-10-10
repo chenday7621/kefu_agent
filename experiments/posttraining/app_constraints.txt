@@ -1,0 +1,11 @@
+# Critical APP dependencies pinned to this repository uv.lock.
+authlib==1.7.0
+fastapi==0.136.0
+fastmcp==3.2.4
+griffe==1.15.0
+mcp==1.27.0
+openai==2.32.0
+parlant-client==3.3.1
+pydantic==2.11.9
+requests==2.33.1
+starlette==1.0.0

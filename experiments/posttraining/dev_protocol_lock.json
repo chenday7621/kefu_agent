@@ -1,0 +1,31 @@
+{
+  "protocol_version": "qwen.dev.v1",
+  "scoring_version": "qwen.reward.v1",
+  "task_count": 30,
+  "families": {
+    "straightforward_transaction": 10,
+    "ambiguity_clarification": 10,
+    "state_confirmation_constraint": 10
+  },
+  "asset_sha256": {
+    "DEV_SCENARIO_FAMILIES.json": "679acf37c849153169b9048eb3aae4e4e4d880a0fa003bf0f48eb714e99ef264",
+    "DEV_TASKS.jsonl": "c3bee7d931a606fc8807ec62de203017ca37d82804080d86aa08e35a56abb993",
+    "REWARD_SPEC.json": "8d471e7246a99332b5458f270f9edc741a0c1ffbad723e721d3575573c87705a",
+    "SPLIT_FREEZE.json": "d72d81949b9e082f6b206e6d6ca3d7376541bf02f9f430e7eb184a44e2cc8742"
+  },
+  "source_sha256": {
+    "dev_protocol.py": "4f0f2977066ad21d481cc22f1b81ac4a03dba11bb35c84d97b069c5bf9c771b1",
+    "scorer.py": "1cb435b4981044ad5f673f406412d750bbeae4b6d0e7b4b30b780620cde7828d"
+  },
+  "manifest_sha256": "28e7d76a0b85d8be349da01d3ae56acf65ce20d310267bbd4331f8ad66f9803b",
+  "model_revision": "b968826d9c46dd6066d109eabc6255188de91218",
+  "generation": {
+    "dtype": "bfloat16",
+    "enable_thinking": false,
+    "use_model_defaults": false,
+    "do_sample": false,
+    "max_new_tokens": 1024
+  },
+  "dataset_storage": "NAS; generated task bodies are not version-controlled",
+  "baseline_runs_at_freeze": 0
+}
