@@ -1,9 +1,11 @@
 """Schema-aware provider with a disabled-by-default Qwen text backend."""
 
 from dataclasses import dataclass
+import asyncio
 import json
 from time import perf_counter
 from typing import cast
+from pydantic import ValidationError
 
 from parlant.core.engines.alpha.tool_calling.single_tool_batch import SingleToolBatchSchema
 from parlant.core.nlp.generation import SchematicGenerator, SchematicGenerationResult
@@ -15,6 +17,10 @@ from .trajectory import CANDIDATE, FRAME, TRUSTED, redact
 
 MODEL_NAME = "Qwen/Qwen3-8B"
 MODEL_REVISION = "b968826d9c46dd6066d109eabc6255188de91218"
+
+
+class TrustedValueLeak(RuntimeError):
+    """An actual protected server value reached a model boundary."""
 
 
 def visible_tool_schema(tool):
@@ -76,6 +82,10 @@ class PolicyGenerationResult(SchematicGenerationResult):
 
 
 class QwenPolicyProvider(SchematicGenerator[SingleToolBatchSchema]):
+    # The research subclass rejects invalid arguments at the native validator
+    # boundary. The original Phase 1-A interface remains strict by default.
+    defer_argument_rejection = False
+
     def __init__(self, tokenizer, logger, backend=None):
         self.native_tokenizer = tokenizer
         self.trajectory = logger
@@ -122,6 +132,9 @@ class QwenPolicyProvider(SchematicGenerator[SingleToolBatchSchema]):
             add_generation_prompt=True,
             enable_thinking=False,
         )
+        guard = getattr(self.trajectory, "assert_no_forbidden_values", None)
+        if guard:
+            guard(rendered)
         pid = self.trajectory.begin(
             frame,
             tool_id.to_string(),
@@ -148,6 +161,12 @@ class QwenPolicyProvider(SchematicGenerator[SingleToolBatchSchema]):
         started = perf_counter()
         try:
             raw = await self.backend.complete(request)
+        except asyncio.CancelledError:
+            self.trajectory.update(
+                pid, parse_status="not_attempted", failure_type="GENERATION_CANCELLED",
+                terminal_status="candidate_cancelled_unexecuted",
+            )
+            raise
         except Exception:
             self.trajectory.update(
                 pid,
@@ -157,15 +176,26 @@ class QwenPolicyProvider(SchematicGenerator[SingleToolBatchSchema]):
                 else "GENERATION_ERROR",
             )
             raise
+        if guard:
+            try:
+                guard(raw)
+            except TrustedValueLeak:
+                self.trajectory.update(
+                    pid, raw_model_output=self.trajectory.mask_forbidden_values(raw),
+                    parse_status="not_attempted", failure_type="TRUSTED_VALUE_LEAK",
+                    terminal_status="safety_stop_unexecuted",
+                )
+                raise
         self.trajectory.update(pid, raw_model_output=raw)
         try:
             # Use the same native Pydantic model as Parlant's original provider.
-            reject_trusted_keys(json.loads(raw))
+            if not self.defer_argument_rejection:
+                reject_trusted_keys(json.loads(raw))
             parsed = SingleToolBatchSchema.model_validate_json(raw)
             visible = tools["function"]["parameters"]["properties"]
             for call in parsed.tool_calls_for_candidate_tool:
                 for argument in call.argument_evaluations or []:
-                    if argument.parameter_name not in visible:
+                    if not self.defer_argument_rejection and argument.parameter_name not in visible:
                         raise ValueError("Model proposed a hidden, trusted, or unknown parameter")
             proposals = [
                 {
@@ -191,7 +221,7 @@ class QwenPolicyProvider(SchematicGenerator[SingleToolBatchSchema]):
                 proposed_calls=proposals,
                 proposed_arguments=proposals[0]["arguments"] if len(proposals) == 1 else None,
             )
-        except Exception:
+        except (ValueError, ValidationError):
             self.trajectory.update(
                 pid, parse_status="failed", failure_type="PARSE_OR_BOUNDARY_ERROR"
             )

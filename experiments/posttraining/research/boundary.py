@@ -11,14 +11,15 @@ from ..integration import (
     ObservedToolCaller,
     AttributedEvaluations,
 )
-from ..policy import QwenPolicyProvider
+from ..policy import QwenPolicyProvider, TrustedValueLeak, visible_tool_schema
+from parlant.core.tools import validate_tool_arguments, ToolExecutionError
+from parlant.core.engines.alpha.tool_calling.tool_caller import ToolCallEvaluation
 from ..trajectory import FRAME, CANDIDATE, TRUSTED
 
 LAST_REQUEST = ContextVar("research_exact_request", default=None)
 
 
-class TrustedFieldLeak(RuntimeError):
-    pass
+TrustedFieldLeak = TrustedValueLeak  # Compatibility name; never inferred from an argument name.
 
 
 class NativeToolBudget(RuntimeError):
@@ -53,6 +54,8 @@ def has_trusted_fields(value):
 
 
 class OncePerCandidateProvider(QwenPolicyProvider):
+    defer_argument_rejection = True
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.started_candidates = set()
@@ -64,22 +67,7 @@ class OncePerCandidateProvider(QwenPolicyProvider):
         if key in self.started_candidates:
             raise RuntimeError("Native candidate retry forbidden; no second generation")
         self.started_candidates.add(key)
-        try:
-            return await super().generate(prompt, hints)
-        except ValueError:
-            request = LAST_REQUEST.get()
-            if request:
-                row = self.trajectory.steps[request["policy_step_id"]]
-                try:
-                    unsafe = has_trusted_fields(json.loads(row["raw_model_output"] or "null"))
-                except json.JSONDecodeError:
-                    unsafe = False
-                if unsafe:
-                    self.trajectory.update(
-                        request["policy_step_id"], failure_type="TRUSTED_FIELD_LEAK"
-                    )
-                    raise TrustedFieldLeak("Trusted field in model output; stop the experiment")
-            raise
+        return await super().generate(prompt, hints)
 
 
 class OnceSingleToolBatch(ObservedSingleToolBatch):
@@ -103,6 +91,42 @@ class OnceSingleToolBatch(ObservedSingleToolBatch):
                     "native_gate_consumed_empty_evaluations": True,
                 },
             )
+            return result
+        # Preserve every original evaluation. In particular the native zero-
+        # parameter converter ignores hallucinated arguments: it must not see
+        # an invalid proposal and silently execute a stripped version of it.
+        tool_id, tool, _ = candidate_descriptor
+        visible = visible_tool_schema(tool)["function"]["parameters"]["properties"]
+        rejected = []
+        remaining = []
+        for index, evaluation in enumerate(inference_output):
+            arguments = {a.parameter_name: a.value_as_string
+                         for a in evaluation.argument_evaluations or []}
+            forbidden = sorted(set(arguments) - set(visible))
+            if not forbidden:
+                remaining.append(evaluation)
+                continue
+            try:
+                validate_tool_arguments(tool, arguments)
+            except ToolExecutionError as error:
+                rejected.append({"proposal_index": index, "status": "CANNOT_RUN",
+                                 "argument_names": forbidden,
+                                 "validator": "parlant.core.tools.validate_tool_arguments",
+                                 "reason": str(error), "arguments": arguments})
+            else:
+                # A hidden parameter recognized by native validation needs a
+                # separately authorized contract; do not fabricate rejection.
+                raise RuntimeError("Native validator did not reject a forbidden proposal")
+        if rejected:
+            from parlant.core.engines.alpha.tool_calling.single_tool_batch import SingleToolBatch
+
+            # Legal proposals still pass the original converter/validator/gate.
+            # The rejected ones retain their proposal indices and original args.
+            result = await SingleToolBatch._evaluate_consequential_tool_calls(
+                self, AttributedEvaluations(remaining, pid), candidate_descriptor
+            )
+            result[1].extend((tool_id, ToolCallEvaluation.CANNOT_RUN) for _ in rejected)
+            self.trajectory.record_boundary_gate(pid, result, rejected)
             return result
         return await super()._evaluate_consequential_tool_calls(
             inference_output, candidate_descriptor
