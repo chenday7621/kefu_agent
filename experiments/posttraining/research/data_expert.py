@@ -6,6 +6,7 @@ Preview fields are flat in the public APP tool result, not a invented envelope.
 """
 
 from copy import deepcopy
+from dataclasses import replace
 import json
 from unittest.mock import patch
 
@@ -31,6 +32,14 @@ def model_visible_payload(value):
         return json.loads(sanitized[len(prefix):])
     except json.JSONDecodeError as error:
         raise DataVisibleContextError("Model-visible payload invalid after sanitization") from error
+
+
+def model_visible_frame(frame):
+    """Derived input references; original executed ToolResults remain untouched."""
+    observations = deepcopy(frame.observations)
+    for observed in observations:
+        observed["result"]["data"] = model_visible_payload(observed["result"].get("data", {}))
+    return replace(frame, observations=observations)
 
 
 def native_visible_calls(prompt):
@@ -202,7 +211,9 @@ class DataSingleToolBatch(OnceSingleToolBatch):
                     user.append(row)
                 elif e.source == EventSource.AI_AGENT:
                     agents.append(row)
-        facts = native_visible_facts(prompt, FRAME.get(), self.trajectory)
+        frame = FRAME.get()
+        facts = native_visible_facts(prompt, frame, self.trajectory)
+        frame_token = FRAME.set(model_visible_frame(frame))
         token = VISIBLE.set(
             {"user_messages": user, "agent_messages": agents, "tool_facts": deepcopy(facts)}
         )
@@ -210,6 +221,7 @@ class DataSingleToolBatch(OnceSingleToolBatch):
             return await super()._run_consequential_tool_inference(prompt, tool_id, temperature)
         finally:
             VISIBLE.reset(token)
+            FRAME.reset(frame_token)
 
 
 class DataBatcher(OnceBatcher):

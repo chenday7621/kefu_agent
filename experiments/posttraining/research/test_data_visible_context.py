@@ -14,7 +14,9 @@ from parlant.core.engines.alpha.prompt_builder import BuiltInSection, PromptBuil
 from parlant.core.sessions import Event, EventKind, EventSource
 
 from ..trajectory import DecisionFrame, redact
-from .data_expert import DataVisibleContextError, native_visible_calls, native_visible_facts
+from .data_expert import (
+    DataVisibleContextError, model_visible_frame, native_visible_calls, native_visible_facts,
+)
 
 
 def tool_event(call_id="call-1", result_id="result-1", quantity=1):
@@ -130,6 +132,19 @@ class NativeVisibleContextTests(unittest.TestCase):
         self.assertNotIn("private-identity-fixture", redact(prompt.build()))
         self.assertNotIn("private-identity-fixture", json.dumps(facts))
         self.assertEqual(facts[0]["data"]["bound_customer_id"], "[REDACTED]")
+
+    def test_input_reference_copy_preserves_raw_result_and_exact_lineage(self):
+        _, observation = tool_event()
+        observation["result"]["data"]["data"]["bound_customer_id"] = "private-identity-fixture"
+        original = deepcopy(observation)
+        frame = DecisionFrame("independent", "S", "T", 2, observations=(observation,))
+        visible = model_visible_frame(frame)
+        self.assertEqual(frame.observations[0], original)
+        self.assertEqual(visible.observations[0]["tool_call_id"], original["tool_call_id"])
+        self.assertEqual(visible.observations[0]["tool_result_id"], original["tool_result_id"])
+        self.assertEqual(visible.episode_id, frame.episode_id)
+        self.assertEqual(visible.parent_ids, frame.parent_ids)
+        self.assertEqual(visible.observations[0]["result"]["data"]["data"]["bound_customer_id"], "[REDACTED]")
 
     def test_readonly_first_data_attempt_recovers_all24_omitted_decisions(self):
         directory = Path("/nas/chenyi/posttraining-qwen/runs/20261011_164724_PT_B0_R1_CONTRACTFIX/datasets/verified-episodes/PTTRAIN-810001")
