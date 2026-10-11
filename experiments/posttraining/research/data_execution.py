@@ -8,7 +8,7 @@ from pathlib import Path
 import shutil
 import subprocess
 
-from .data_controller import collect
+from .data_controller import collect, DataCollectionBudgetStop
 from .data_freeze import assemble
 from .resources import ResearchResources
 from .runner import preflight, write
@@ -92,9 +92,19 @@ def run(plan, definitions):
         config_path.chmod(0o600)
         state.update(status="DATA_COLLECTION_RUNNING")
         write(state_path, state)
-        collect(config, tasks)
+        collection_stop = None
+        try:
+            collect(config, tasks)
+        except DataCollectionBudgetStop as exc:
+            # Only a between-episode known-cost stop is eligible. All incomplete
+            # infrastructure/provider failures still pause without stitching.
+            collection_stop = str(exc)
         episodes = [json.loads(s) for s in (Path(config["collection_directory"]) / "EPISODES.jsonl").read_text().splitlines()]
         manifest = assemble(config, registry, episodes)
+        manifest["acquisition_budget_stop"] = collection_stop
+        manifest["planned_episodes"] = len(tasks)
+        manifest["actual_complete_episodes"] = len(episodes)
+        manifest["target_not_minimum"] = {"train": 200, "sft_valid": 40}
         write(data_review / "TRAIN_DATA_MANIFEST.json", manifest)
         write(data_review / "DATA_QUALITY_REPORT.json", {"episode_count": len(episodes),
               "business_verified": sum(e["business"]["passed"] for e in episodes),

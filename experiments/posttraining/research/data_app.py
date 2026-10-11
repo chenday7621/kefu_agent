@@ -32,6 +32,16 @@ class ExpertTrajectory(evidence.ResearchTrajectory):
             raise ValueError("DEV/oracle cannot enter expert collection")
         self.journal = SplitJournal(directory, task["split"])
 
+    def begin(self, frame, tool_id, tool_name, messages, rendered, schema, model,
+              revision, generation_origin="interface"):
+        if generation_origin != "synthetic_rule_expert":
+            raise ValueError("Independent collection requires the visible rule expert")
+        # The frozen exact journal's execution-origin vocabulary uses fixture
+        # for CPU generators. Detailed supervision provenance remains the
+        # explicit synthetic_rule_expert in EXPERT_RECORDS and data manifests.
+        return super().begin(frame, tool_id, tool_name, messages, rendered, schema,
+                             model, revision, generation_origin="fixture")
+
 
 async def run(config):
     if config["phase"] != "train" or config["mode"] != "training_visible_expert":

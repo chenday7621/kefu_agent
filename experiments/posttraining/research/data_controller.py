@@ -18,6 +18,10 @@ from .data_audit import business_report
 from .data_user import DataUser
 
 
+class DataCollectionBudgetStop(RuntimeError):
+    """Known cost reaches the predeclared non-evaluation acquisition reserve."""
+
+
 class TrainingDatabase(EpisodeDatabase):
     def materialize(self):
         initial = super().materialize()
@@ -152,8 +156,10 @@ def collect(config, tasks):
         from .budget import BudgetLedger
 
         summary = BudgetLedger(config["budget_directory"], config["authorization"], config["prices"]).summary()
-        if summary["estimated_or_reserved_usd"] >= 7.8 or summary["unknown_usage_requests"]:
-            raise RuntimeError("DATA_BUDGET_STOP: preserve evaluation and unknown-use reservations")
+        if summary["unknown_usage_requests"]:
+            raise RuntimeError("DATA_UNKNOWN_USAGE_STOP: unresolved provider use remains reserved")
+        if summary["estimated_or_reserved_usd"] >= 7.8:
+            raise DataCollectionBudgetStop("DATA_BUDGET_STOP: no new episode; protect evaluation reserve")
         db = TrainingDatabase(config["admin_dsn"], "ptdev_" + uuid4().hex[:16], task, path)
         try:
             db.materialize()

@@ -82,7 +82,8 @@ def business_report(task, final_db, events):
 
 
 def verify_lineage(task, policy, expert, events):
-    if policy["generation_origin"] != "synthetic_rule_expert" or policy["parse_status"] != "passed":
+    if (policy["generation_origin"] != "fixture" or expert.get("source_type") != "synthetic_rule_expert"
+            or policy["parse_status"] != "passed"):
         raise ValueError("Not a parsed independent expert target")
     parsed = SingleToolBatchSchema.model_validate(expert["target_json"])
     actual = SingleToolBatchSchema.model_validate_json(policy["raw_model_output"])

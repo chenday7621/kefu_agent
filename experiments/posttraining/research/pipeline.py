@@ -68,7 +68,7 @@ def run(plan_path, definitions, helper, wait):
             state = json.loads(state_path.read_text())
             if state["status"] in ("B0_COMPLETE", "B0_COMPLETE_WITH_DECLARED_MISSING") and not (runtime / "pg/cluster/postmaster.pid").exists():
                 break
-            if state["status"] not in ("B0_STARTING", "B0_COMPLETE") or not wait:
+            if state["status"] not in ("B0_STARTING", "B0_COMPLETE", "B0_BOUNDARY_CONTINUATION_RUNNING", "B0_COMPLETE_WITH_DECLARED_MISSING") or not wait:
                 raise RuntimeError("Prior B0 incomplete/blocked; subsequent stages forbidden")
             if time.monotonic() - waiting_started > 8.5 * 3600:
                 raise RuntimeError("B0 wait resource limit reached; no automatic stage expansion")

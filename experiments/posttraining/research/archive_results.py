@@ -6,6 +6,7 @@ import hashlib
 import json
 from pathlib import Path
 import subprocess
+import statistics
 
 from .budget import BudgetLedger
 from .business_metrics import audit_rows
@@ -39,6 +40,13 @@ def metrics(data):
     result["family"] = {name: {"completed": len(rs), "reward_counts": dict(Counter(str(r["score"]["reward"]) for r in rs)),
                                   "successes": sum(r["score"]["metrics"]["task_success"] for r in rs)}
                         for name, rs in groups.items()}
+    latency = [r["latency_seconds"] for r in data]
+    result["latency_p50_seconds"] = statistics.median(latency) if latency else None
+    result["latency_p95_seconds"] = statistics.quantiles(latency, n=100, method="inclusive")[94] if len(latency) > 1 else (latency[0] if latency else None)
+    result["joint_rounds"] = sum(r["model_metrics"]["joint_rounds"] for r in data)
+    result["joint_rounds_per_task"] = result["joint_rounds"] / len(data) if data else None
+    result["peak_gpu_allocated_bytes"] = max((r["model_metrics"].get("peak_gpu_allocated_bytes") or 0 for r in data), default=None)
+    result["peak_gpu_reserved_bytes"] = max((r["model_metrics"].get("peak_gpu_reserved_bytes") or 0 for r in data), default=None)
     return result
 
 
@@ -86,6 +94,29 @@ def archive(plan):
             "audit_repeated": False,
             "previously_verified_provider_error": "F1-03: frozen response provider presented an order ID as an operation ID; no real user confirmation",
             "failure_blame_allocation": "No numerical causal allocation or paid counterfactual diagnosis"}
+    ledger = BudgetLedger(config["budget_directory"], config["authorization"], config["prices"]).latest()
+    summary["provider_by_phase"] = {}
+    for phase in ("b0", "train", "sft_eval", "startup", "anomaly"):
+        usage = [r for r in ledger.values() if r["phase"] == phase]
+        summary["provider_by_phase"][phase] = {
+            "requests": len(usage), "estimated_or_reserved_usd": float(sum(BudgetLedger.amount(r) for r in usage)),
+            "returned_models": dict(Counter(r.get("returned_model") for r in usage)),
+            "fingerprints": dict(Counter(r.get("system_fingerprint") for r in usage)),
+            "prompt_tokens": sum((r.get("usage") or {}).get("prompt_tokens", 0) for r in usage),
+            "completion_tokens": sum((r.get("usage") or {}).get("completion_tokens", 0) for r in usage),
+            "unknown_usage": sum(r.get("estimated_usd") is None for r in usage)}
+    if summary.get("primary_comparison"):
+        primary = summary["primary_comparison"]
+        n = primary["denominator"]
+        for phase in ("b0", "sft1"):
+            primary[phase]["fixed_set_task_success_rate"] = primary[phase]["task_success_count"] / n if n and primary[phase]["completed"] == n else None
+        if n and primary["sft1"]["completed"] == n:
+            change = primary["sft1"]["task_success_count"] - primary["b0"]["task_success_count"]
+            primary["success_count_change"] = change
+            primary["success_percentage_point_change"] = 100 * change / n
+            summary["sft_outcome"] = "SFT1_POSITIVE_DEV_SIGNAL" if change > 0 else ("SFT1_REGRESSION" if change < 0 else "SFT1_NO_TASK_GAIN")
+        else:
+            summary["sft_outcome"] = "INCOMPLETE_WITH_EVIDENCE"
     write(review / "RESULT_SUMMARY.json", summary)
     for name, data in stages.items():
         write(review / (name.upper() + "_METRICS.json"), summary[name])
