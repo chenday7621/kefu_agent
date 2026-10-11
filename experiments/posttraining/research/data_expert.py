@@ -14,6 +14,91 @@ from . import expert
 from .expert import parse_user_messages, resolve_intent, VISIBLE, VisibleRuleBackend
 from .boundary import OnceSingleToolBatch, OnceBatcher
 
+
+class DataVisibleContextError(RuntimeError):
+    """Native visible evidence could not be read or explicitly attributed."""
+
+
+def native_visible_calls(prompt):
+    """Read only the native history/staged sections, without text inference."""
+    from parlant.core.engines.alpha.prompt_builder import BuiltInSection
+
+    sections = prompt.props
+    calls = []
+    present = False
+    for name, field in (
+        (BuiltInSection.INTERACTION_HISTORY, "interaction_events"),
+        (BuiltInSection.STAGED_EVENTS, "staged_events_as_dict"),
+    ):
+        if name not in sections:
+            continue
+        present = True
+        section = sections[name]
+        # Native empty history has no interaction_events; it is not a read error.
+        if field not in section:
+            if section or name == BuiltInSection.STAGED_EVENTS:
+                raise DataVisibleContextError("Native visible section field missing")
+            continue
+        encoded_events = section[field]
+        if not isinstance(encoded_events, list):
+            raise DataVisibleContextError("Native visible events must be a list")
+        for encoded in encoded_events:
+            if not isinstance(encoded, str):
+                raise DataVisibleContextError("Native visible event must be encoded JSON")
+            try:
+                event = json.loads(encoded)
+            except json.JSONDecodeError as error:
+                raise DataVisibleContextError("Native visible event JSON is invalid") from error
+            if not isinstance(event, dict) or not isinstance(event.get("data"), dict):
+                raise DataVisibleContextError("Native visible event data is invalid")
+            tool_calls = event["data"].get("tool_calls", [])
+            if not isinstance(tool_calls, list) or any(
+                not isinstance(c, dict) or not all(k in c for k in ("tool_id", "arguments", "result"))
+                for c in tool_calls
+            ):
+                raise DataVisibleContextError("Native visible tool call is invalid")
+            calls.extend(tool_calls)
+    return calls, present
+
+
+def native_visible_facts(prompt, frame, trajectory):
+    """Bind actual visible payloads to this episode's explicit result/call IDs."""
+    calls, present = native_visible_calls(prompt)
+    if frame.observations and not present:
+        raise DataVisibleContextError("Native visible sections missing with preceding results")
+    facts = {}
+    matched = set()
+    for result in frame.observations:
+        call_id, result_id = result["tool_call_id"], result["tool_result_id"]
+        try:
+            pid = trajectory.call_parents[call_id]
+            step = trajectory.steps[pid]
+        except KeyError as error:
+            raise DataVisibleContextError("Preceding result has no policy/call binding") from error
+        if step["episode_id"] != frame.episode_id:
+            raise DataVisibleContextError("Cross-episode visible result")
+        payload = redact(result["result"].get("data", {}))
+        if not isinstance(payload, dict) or payload.get("ok") is not True:
+            continue
+        indices = [i for i, c in enumerate(calls)
+                   if c["tool_id"].split(":")[-1] == step["candidate_tool_name"]
+                   and redact(c["result"]) == payload]
+        if not indices:
+            # A result not present in this native prompt is not expert input.
+            continue
+        matched.update(indices)
+        fact = {"event_id": result_id, "data": payload["data"],
+                "tool_name": step["candidate_tool_name"], "tool_call_id": call_id,
+                "parent_policy_step_id": pid, "source_kind": "native_tool_result"}
+        if result_id in facts and facts[result_id] != fact:
+            raise DataVisibleContextError("Conflicting visible ToolResult binding")
+        facts[result_id] = fact
+    if any(isinstance(c["result"], dict) and c["result"].get("ok") is True
+           and i not in matched for i, c in enumerate(calls)):
+        raise DataVisibleContextError("Visible successful tool result lacks explicit attribution")
+    return list(facts.values())
+
+
 def choose(view, candidate):
     intent, user_facts = parse_user_messages(view["user_messages"])
     resolved, derived, details, previews, submitted = resolve_intent(intent, view["tool_facts"])
@@ -103,46 +188,7 @@ class DataSingleToolBatch(OnceSingleToolBatch):
                     user.append(row)
                 elif e.source == EventSource.AI_AGENT:
                     agents.append(row)
-        # Only observations also present in the actual native prompt are exposed.
-        from parlant.core.engines.alpha.prompt_builder import BuiltInSection
-
-        sections = prompt.props
-        visible_calls = []
-        for name in (BuiltInSection.INTERACTION_HISTORY, BuiltInSection.STAGED_EVENTS):
-            for values in sections.get(f"__{name.name}__", {}).values():
-                if not isinstance(values, list):
-                    continue
-                for encoded in values:
-                    if not isinstance(encoded, str):
-                        continue
-                    try:
-                        event = json.loads(encoded)
-                    except json.JSONDecodeError:
-                        continue
-                    visible_calls.extend(event.get("data", {}).get("tool_calls", []))
-        facts = []
-        frame = FRAME.get()
-        for result in frame.observations:
-            payload = result["result"].get("data", {})
-            if not isinstance(payload, dict) or payload.get("ok") is not True:
-                continue
-            pid = self.trajectory.call_parents[result["tool_call_id"]]
-            name = self.trajectory.steps[pid]["candidate_tool_name"]
-            if not any(
-                c["tool_id"].split(":")[-1] == name and redact(c["result"]) == payload
-                for c in visible_calls
-            ):
-                continue
-            facts.append(
-                {
-                    "event_id": result["tool_result_id"],
-                    "data": payload["data"],
-                    "tool_name": name,
-                    "tool_call_id": result["tool_call_id"],
-                    "parent_policy_step_id": pid,
-                    "source_kind": "native_tool_result",
-                }
-            )
+        facts = native_visible_facts(prompt, FRAME.get(), self.trajectory)
         token = VISIBLE.set(
             {"user_messages": user, "agent_messages": agents, "tool_facts": deepcopy(facts)}
         )

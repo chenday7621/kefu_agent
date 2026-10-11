@@ -1,0 +1,17 @@
+{
+  "version": "DATA_VISIBLE_CONTEXT_V2",
+  "native_sections": [
+    "INTERACTION_HISTORY",
+    "STAGED_EVENTS"
+  ],
+  "reader_source_sha256": "f82348576dad603f38b6c669e578ebacb242df253c419d28b2abac7cd73a57f7",
+  "expert_decision_rule_unchanged": true,
+  "prompt_adapter_decoder_unchanged": true,
+  "source_origin": "synthetic_rule_expert",
+  "unknown_section_format": "explicit_contract_error",
+  "unbound_visible_result": "explicit_contract_error",
+  "episode_and_result_ids": "explicit_same_episode_binding",
+  "historical_failed_data": "retained_and_excluded; not relabeled or rerun",
+  "sft_comparison": "pre-frozen20 paired DEV units; affected9 and missing1 separately",
+  "model_or_api_calls_for_verification": 0
+}
