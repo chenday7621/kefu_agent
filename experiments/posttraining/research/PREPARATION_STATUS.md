@@ -1,3 +1,7 @@
+# Historical initial preparation checkpoint
+
+This describes the initial paused checkpoint. The user has subsequently configured the model key and approved `SPLIT_POLICY_V2.json`; see the versioned amendment. It is not a current blocker declaration or a completed-experiment report.
+
 # B0 / first LoRA execution preparation
 
 Status: **INCOMPLETE_WITH_EVIDENCE**. No B0 result, training dataset, trained adapter or paired evaluation exists for this run.

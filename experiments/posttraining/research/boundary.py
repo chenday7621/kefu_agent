@@ -2,13 +2,54 @@
 
 from contextvars import ContextVar
 from time import perf_counter
+import json
 
 from parlant.core.nlp.generation_info import GenerationInfo, UsageInfo
-from ..integration import ObservedSingleToolBatch, ObservedBatcher, AttributedEvaluations
+from ..integration import (
+    ObservedSingleToolBatch,
+    ObservedBatcher,
+    ObservedToolCaller,
+    AttributedEvaluations,
+)
 from ..policy import QwenPolicyProvider
-from ..trajectory import FRAME, CANDIDATE
+from ..trajectory import FRAME, CANDIDATE, TRUSTED
 
 LAST_REQUEST = ContextVar("research_exact_request", default=None)
+
+
+class TrustedFieldLeak(RuntimeError):
+    pass
+
+
+class NativeToolBudget(RuntimeError):
+    pass
+
+
+class BoundedToolCaller(ObservedToolCaller):
+    def __init__(self, *args, directory, maximum=18):
+        super().__init__(*args)
+        self.directory, self.maximum, self.started = directory, maximum, 0
+
+    async def _run_tool(self, context, tool_call, tool_id):
+        if self.started >= self.maximum:
+            (self.directory / "TOOL_BUDGET_STOP.json").write_text(
+                json.dumps(
+                    {"started_calls": self.started, "undispatched_call_id": str(tool_call.id)}
+                )
+            )
+            raise NativeToolBudget("No dispatch beyond the frozen native tool budget")
+        self.started += 1
+        return await super()._run_tool(context, tool_call, tool_id)
+
+
+def has_trusted_fields(value):
+    if isinstance(value, dict):
+        if any(str(k).lower() in TRUSTED for k in value):
+            return True
+        if str(value.get("parameter_name", "")).lower() in TRUSTED:
+            return True
+        return any(has_trusted_fields(v) for v in value.values())
+    return isinstance(value, list) and any(has_trusted_fields(v) for v in value)
 
 
 class OncePerCandidateProvider(QwenPolicyProvider):
@@ -23,7 +64,22 @@ class OncePerCandidateProvider(QwenPolicyProvider):
         if key in self.started_candidates:
             raise RuntimeError("Native candidate retry forbidden; no second generation")
         self.started_candidates.add(key)
-        return await super().generate(prompt, hints)
+        try:
+            return await super().generate(prompt, hints)
+        except ValueError:
+            request = LAST_REQUEST.get()
+            if request:
+                row = self.trajectory.steps[request["policy_step_id"]]
+                try:
+                    unsafe = has_trusted_fields(json.loads(row["raw_model_output"] or "null"))
+                except json.JSONDecodeError:
+                    unsafe = False
+                if unsafe:
+                    self.trajectory.update(
+                        request["policy_step_id"], failure_type="TRUSTED_FIELD_LEAK"
+                    )
+                    raise TrustedFieldLeak("Trusted field in model output; stop the experiment")
+            raise
 
 
 class OnceSingleToolBatch(ObservedSingleToolBatch):

@@ -126,18 +126,23 @@ def run_episode(db, shared):
                     )
                 if (directory / "APP_ERRORS.json").exists():
                     raise RuntimeError("Native infrastructure error; no result stitching")
+                if (directory / "TOOL_BUDGET_STOP.json").exists():
+                    pending = None
+                    failure_type = "NATIVE_TOOL_BUDGET"
+                    break
                 events = events_with_visible_phrases()
+                results = {e["tool_result_id"] for e in events if e["kind"] == "tool_result"}
                 pending = user.react(events)
                 if pending:
+                    consumed_results.update(results)
                     break
                 proposals = [
                     e for e in events if e["kind"] in ("policy_proposal", "policy_failure")
                 ]
-                results = {e["tool_result_id"] for e in events if e["kind"] == "tool_result"}
-                # Only wait/continue while a frozen visible-user trigger is
-                # pending and new real observations exist. Never pick a next tool.
+                # Continue after new actual observations, including after the
+                # final confirmation. Never select the next candidate/action.
                 fresh = results - consumed_results
-                if user.scripts and fresh and len(proposals) + 6 <= 30:
+                if fresh and len(proposals) + 6 <= 30:
                     consumed_results.update(fresh)
                     post(f"/posttraining/sessions/{sid}/process")
                     continue
@@ -163,6 +168,39 @@ def run_episode(db, shared):
         if audit["policy_decisions"] > 30 or audit["tool_results"] > 18:
             raise RuntimeError("Frozen native budget exceeded")
         db.save("TRAJECTORY_AUDIT.json", audit)
+        latest = {}
+        for path in (directory / "trajectories").glob("policy-*.jsonl"):
+            for line in path.read_text().splitlines():
+                row = json.loads(line)
+                latest[row["policy_step_id"]] = row
+        generation_file = Path(config["generation_directory"]) / "GENERATIONS.jsonl"
+        generations = (
+            [
+                r
+                for r in map(json.loads, generation_file.read_text().splitlines())
+                if r["policy_step_id"] in latest
+            ]
+            if generation_file.exists()
+            else []
+        )
+        if len(generations) != len(latest):
+            raise RuntimeError("Model generations lack exact episode policy attribution")
+        model_metrics = {
+            "generation_origin": "local_qwen",
+            "policy_decisions": len(latest),
+            "joint_rounds": len({r["engine_iteration"] for r in latest.values()}),
+            "parse_failures": sum(r["parse_status"] == "failed" for r in latest.values()),
+            "prompt_tokens": sum(r["input_tokens"] for r in generations),
+            "output_tokens": sum(r["output_tokens"] for r in generations),
+            "peak_gpu_allocated_bytes": max(
+                (r["peak_allocated_bytes"] for r in generations), default=None
+            ),
+            "peak_gpu_reserved_bytes": max(
+                (r["peak_reserved_bytes"] for r in generations), default=None
+            ),
+            "model_generation_seconds": sum(r["latency_seconds"] for r in generations),
+        }
+        db.save("MODEL_METRICS.json", model_metrics)
         infrastructure_ok = True
         return {
             "task_id": task["task_id"],
@@ -172,6 +210,7 @@ def run_episode(db, shared):
             "audit": audit,
             "failure_type": failure_type,
             "latency_seconds": time.monotonic() - start,
+            "model_metrics": model_metrics,
         }
     finally:
         services.stop()

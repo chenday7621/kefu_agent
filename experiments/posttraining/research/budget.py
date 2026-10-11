@@ -55,7 +55,7 @@ class BudgetLedger:
         value = row.get("estimated_usd")
         return Decimal(str(row["reserved_usd"] if value is None else value))
 
-    def reserve(self, phase, schema, request):
+    def reserve(self, phase, schema, request, attribution=None):
         if phase not in ("startup", "b0", "train", "sft_eval", "anomaly"):
             raise ValueError("Unknown paid phase")
         maximum = request.get("max_tokens")
@@ -96,6 +96,7 @@ class BudgetLedger:
                 "usage": None,
                 "actual_bill_usd": None,
                 "physical_sdk_retries": 0,
+                "attribution": dict(attribution or {}),
             }
             self.append(row)
             return row["request_id"]

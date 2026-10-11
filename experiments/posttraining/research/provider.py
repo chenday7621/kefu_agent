@@ -19,6 +19,11 @@ class ReferenceNLP(DemoDeepSeek):
             config["budget_directory"], config["authorization"], config["prices"]
         )
 
+    async def get_embedder(self, hints=None):
+        if not hasattr(self, "reference_embedder"):
+            raise RuntimeError("Original neural reference embedder was not bound")
+        return self.reference_embedder
+
     async def get_schematic_generator(self, schema, hints=None):
         if schema is SingleToolBatchSchema:
             return self.policy
@@ -31,7 +36,12 @@ class ReferenceNLP(DemoDeepSeek):
         async def accounted(*args, **kwargs):
             if kwargs.get("model") != "deepseek-chat":
                 raise RuntimeError("Frozen native reference model changed")
-            request_id = self.ledger.reserve(self.config["phase"], schema.__name__, kwargs)
+            request_id = self.ledger.reserve(
+                self.config["phase"],
+                schema.__name__,
+                kwargs,
+                {"episode_id": self.config.get("episode_id"), "run_id": self.config.get("run_id")},
+            )
             started = perf_counter()
             directory = Path(self.config["budget_directory"]) / "provider_payloads"
             directory.mkdir(exist_ok=True)

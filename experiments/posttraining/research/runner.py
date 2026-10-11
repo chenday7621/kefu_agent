@@ -49,6 +49,17 @@ def preflight(config):
                 "reason": "Independent TRAIN/SFT-VALID family registry not approved",
             }
         )
+    else:
+        approval = json.loads(split.read_text())
+        policy = Path(approval["policy_path"])
+        if hashlib.sha256(policy.read_bytes()).hexdigest() != approval["policy_sha256"]:
+            raise ValueError("Approved split policy hash changed")
+        from .split_policy import register
+
+        definition = json.loads(policy.read_text())
+        if definition["version"] != "split.policy.v2":
+            raise ValueError("Approved V2 template isolation required")
+        register(definition["groups"])
     if shutil.disk_usage(config["runtime"]).free < 10 * 1024**3:
         blockers.append({"status": "RESOURCE_BLOCKED", "reason": "NAS below 10GiB reserve"})
     return blockers

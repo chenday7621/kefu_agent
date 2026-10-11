@@ -1,6 +1,6 @@
 # Qwen B0 / first LoRA research preparation
 
-These modules prepare an isolated research path. They are **not evidence of a completed model experiment**. The initial run is blocked before paid/model execution by the missing reference-provider credential and the unapproved independent TRAIN/SFT-VALID family split. The existing 30-task Oracle acceptance is preserved and must not be repeated.
+These modules prepare an isolated research path. They are **not evidence of a completed model experiment**. The initial credential/split pause is recorded in historical evidence. The user subsequently configured the model key and approved version 2 isolation: capabilities may be shared, while concrete causal-template groups and episodes remain split-disjoint. The existing 30-task Oracle acceptance is preserved and must not be repeated.
 
 Implemented preparation:
 
@@ -10,7 +10,7 @@ Implemented preparation:
 - A scripted user actor that receives only the opening, current user-known fields and frozen followups. It confirms only the latest actually displayed phrase matching current user intent.
 - Explicit parser-failure handling: raw output and parse failure remain recorded; the unchanged native gate consumes empty evaluable actions without dispatch. No successful parsed proposal is invented and no second generation is allowed.
 - Exact journal compatibility, independent sample-admission checks, completion-only labels and a collator that preserves real EOS when EOS is also the padding ID.
-- A guarded one-epoch PEFT training entrance. It refuses undersized/unverified/DEV data and requires separate sanity evidence. **The scenario generator/expert, collection orchestration, real binding validation and training sanity artifacts still require completion after split/provider blockers are resolved.**
+- A guarded one-epoch PEFT training entrance. It refuses undersized/unverified/DEV data and requires separate sanity evidence. **The scenario generator/expert, collection orchestration, real binding validation and training sanity artifacts must all pass before the experiment is complete.**
 
 ## Commands
 
@@ -20,6 +20,7 @@ Use the existing isolated Python prefix and set cache/storage environment before
 python -m unittest experiments.posttraining.research.test_offline
 python -m experiments.posttraining.research.runner --plan "$POSTTRAIN_RUN_CONFIG" --status
 python -m experiments.posttraining.research.runner --plan "$POSTTRAIN_RUN_CONFIG" --resume
+python -m experiments.posttraining.research.execution --plan "$POSTTRAIN_RUN_CONFIG" --stage b0
 python -m experiments.posttraining.research.train --config "$POSTTRAIN_TRAIN_CONFIG" --validate-only
 ```
 
@@ -27,8 +28,8 @@ python -m experiments.posttraining.research.train --config "$POSTTRAIN_TRAIN_CON
 
 ## Resume prerequisites
 
-1. Configure only `DEEPSEEK_API_KEY` locally; never send or commit a credential. Git authentication and model-service keys remain separate.
-2. Approve/register a defensible family-disjoint TRAIN/SFT-VALID pair or explicitly amend the split policy. No amendment is inferred from a dollar-budget approval.
+1. Keep `DEEPSEEK_API_KEY` local; never send or commit a credential. Git authentication and model-service keys remain separate.
+2. Use the explicitly approved `SPLIT_POLICY_V2.json`; register templates and episodes before generating data. Generic family overlap is allowed; semantic template overlap, DEV supervision, holdout use and cosmetic renaming remain prohibited.
 3. Complete the remaining integration/data/sanity orchestration and targeted model-free checks, commit the tested B0 version, then run the first formal task as the counted canary.
 
 The protocol stays at 30 candidate decisions, 12 user turns and 18 native tool calls per DEV-V2 episode. Failed model tasks remain failures; completed tasks are never replayed for score selection. Original APP/core/business migrations and scorer are unchanged.

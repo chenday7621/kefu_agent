@@ -10,7 +10,7 @@ from unittest.mock import patch
 
 from .backend import RemoteQwenBackend
 from .provider import ReferenceNLP
-from .boundary import OncePerCandidateProvider, OnceBatcher
+from .boundary import OncePerCandidateProvider, OnceBatcher, BoundedToolCaller, NativeToolBudget
 from ..trajectory import FRAME, DecisionFrame
 
 RUNTIME = None
@@ -18,16 +18,55 @@ RUNTIME = None
 
 async def configure_container(container):
     from parlant.core.engines.alpha.hooks import EngineHooks, EngineHookResult
-    from ..integration import install_container, ObservedToolCaller
+    from ..integration import install_container
     from parlant.core.engines.alpha.tool_calling.tool_caller import ToolCaller, ToolCallBatcher
     from lagom import Singleton
 
     c = install_container(container, RUNTIME.policy, RUNTIME.logger).clone()
-    original = c[ToolCallBatcher]
-    batcher = OnceBatcher(original, RUNTIME.logger, RUNTIME.policy)
-    c[ToolCallBatcher] = Singleton(lambda container: batcher)
-    base = c[ToolCaller]
-    c[ToolCaller] = Singleton(lambda container: ObservedToolCaller(base, batcher, RUNTIME.logger))
+
+    # SDK configuration precedes NLP initialization. Resolve generators lazily
+    # from the final child container rather than eagerly from this pre-NLP one.
+    def batcher_factory(container):
+        from parlant.core.engines.alpha.tool_calling.default_tool_call_batcher import (
+            DefaultToolCallBatcher,
+        )
+        from parlant.core.engines.alpha.tool_calling.single_tool_batch import (
+            SingleToolBatchSchema,
+            NonConsequentialToolBatchSchema,
+        )
+        from parlant.core.engines.alpha.tool_calling.overlapping_tools_batch import (
+            OverlappingToolsBatchSchema,
+        )
+        from parlant.core.engines.alpha.optimization_policy import OptimizationPolicy
+        from parlant.core.loggers import Logger
+        from parlant.core.meter import Meter
+        from parlant.core.nlp.generation import SchematicGenerator
+        from parlant.core.relationships import RelationshipStore
+        from parlant.core.services.tools.service_registry import ServiceRegistry
+
+        original = DefaultToolCallBatcher(
+            container[Logger],
+            container[Meter],
+            container[OptimizationPolicy],
+            container[ServiceRegistry],
+            container[SchematicGenerator[SingleToolBatchSchema]],
+            container[SchematicGenerator[NonConsequentialToolBatchSchema]],
+            container[SchematicGenerator[OverlappingToolsBatchSchema]],
+            container[RelationshipStore],
+        )
+        return OnceBatcher(original, RUNTIME.logger, RUNTIME.policy)
+
+    def caller_factory(container):
+        from parlant.core.loggers import Logger
+        from parlant.core.meter import Meter
+        from parlant.core.services.tools.service_registry import ServiceRegistry
+
+        batcher = container[ToolCallBatcher]
+        base = ToolCaller(container[Logger], container[Meter], container[ServiceRegistry], batcher)
+        return BoundedToolCaller(base, batcher, RUNTIME.logger, directory=RUNTIME.directory)
+
+    c[ToolCallBatcher] = Singleton(batcher_factory)
+    c[ToolCaller] = Singleton(caller_factory)
     hooks = c[EngineHooks]
 
     async def start(context, payload=None, exception=None):
@@ -56,6 +95,8 @@ async def configure_container(container):
         return EngineHookResult.CALL_NEXT
 
     async def errors(context, payload=None, exception=None):
+        if isinstance(exception, NativeToolBudget):
+            return EngineHookResult.CALL_NEXT
         RUNTIME.errors.append({"type": type(exception).__name__})
         (RUNTIME.directory / "APP_ERRORS.json").write_text(json.dumps(RUNTIME.errors))
         return EngineHookResult.CALL_NEXT
@@ -254,9 +295,11 @@ async def run(config):
             config["embedding_path"],
             config["embedding_runtime_cache"],
         )
-        return ReferenceNLP(
+        service = ReferenceNLP(
             container[p.Logger], container[p.Tracer], container[Meter], policy, config
         )
+        service.reference_embedder = container[LocalEmbedder]
+        return service
 
     settings = Settings(
         config["database_url"],
@@ -265,6 +308,7 @@ async def run(config):
         config["app_port"],
         config["tool_port"],
         directory / "parlant",
+        embedding_model=config["embedding_path"],
     )
     workers = []
     with patch.object(nlp, "nlp_factory", factory):

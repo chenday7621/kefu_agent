@@ -13,8 +13,14 @@ def verify_sample(sample, lineage, split_registry):
         "sft_valid",
     ):
         raise ValueError("DEV/oracle/provider output is not policy supervision")
-    if split_registry.get(sample["family_id"]) != sample["split"]:
-        raise ValueError("Unregistered or overlapping family split")
+    from .split_policy import check_episode
+
+    if split_registry.get("version") != "split.policy.v2":
+        raise ValueError("Explicit approved V2 template registry required")
+    check_episode(sample, split_registry["groups"])
+    ownership = split_registry.get("episode_ownership", {})
+    if ownership.get(sample["episode_id"]) != sample["split"]:
+        raise ValueError("Unregistered or overlapping episode split")
     if sample["episode_id"].startswith("PTDEV-") or lineage.get("counts_as_baseline"):
         raise ValueError("DEV episode contamination")
     target = sample["target_json"]

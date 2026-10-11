@@ -96,6 +96,7 @@ class ResidentQwenBackend:
     def _generate(self, request, ids):
         torch = self.torch
         pid = request["policy_step_id"]
+        torch.cuda.reset_peak_memory_stats()
         encoded = torch.tensor([ids], device="cuda:0")
         start = perf_counter()
         with torch.inference_mode():
@@ -111,6 +112,10 @@ class ResidentQwenBackend:
         raw = self.tokenizer.decode(out, skip_special_tokens=True)
         record = {
             "policy_step_id": pid,
+            "episode_id": request.get("episode_id"),
+            "candidate_tool_id": request.get("candidate_tool_id"),
+            "turn_id": request.get("turn_id"),
+            "engine_iteration": request.get("engine_iteration"),
             "generation_origin": "local_qwen",
             "status": "completed",
             "prompt_token_ids": ids,
@@ -146,12 +151,22 @@ class RemoteQwenBackend:
         from .boundary import LAST_REQUEST
 
         LAST_REQUEST.set(request)
+        from ..trajectory import FRAME, CANDIDATE
+
+        frame, candidate = FRAME.get(), CANDIDATE.get()
+        payload = dict(
+            request,
+            episode_id=frame.episode_id,
+            turn_id=frame.turn_id,
+            engine_iteration=frame.engine_iteration,
+            candidate_tool_id=candidate[0].to_string(),
+        )
         import httpx
 
         async with httpx.AsyncClient(trust_env=False, timeout=600) as client:
             response = await client.post(
                 self.url + "/generate",
-                json=request,
+                json=payload,
                 headers={"X-Policy-Capability": self.capability},
             )
             response.raise_for_status()
