@@ -33,6 +33,17 @@ def preflight(config):
     from ..budget_protocol import verify_execution_bundle
 
     blockers = []
+    protocol = Path(config["review"]) / "b0/PROTOCOL_BLOCKER.json"
+    if (
+        protocol.exists()
+        and json.loads(protocol.read_text()).get("status") == "B0_PROTOCOL_BLOCKED"
+    ):
+        blockers.append(
+            {
+                "status": "B0_PROTOCOL_BLOCKED",
+                "reason": json.loads(protocol.read_text())["primary_blocker"],
+            }
+        )
     verify_execution_bundle(Path(config["dev_bundle"]))
     key = os.environ.get("DEEPSEEK_API_KEY") or dotenv_values(config["repo_env"]).get(
         "DEEPSEEK_API_KEY"
