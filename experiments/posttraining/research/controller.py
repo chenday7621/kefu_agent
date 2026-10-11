@@ -7,6 +7,7 @@ import time
 from uuid import uuid4
 
 import requests
+import subprocess
 
 from ..budget_protocol import verify_execution_bundle
 from ..dev_controller import Services, free_port, save
@@ -50,9 +51,21 @@ def run_episode(db, shared):
     url = f"http://127.0.0.1:{config['app_port']}"
 
     def post(path, body=None):
-        response = client.post(url + path, json=body or {}, timeout=600)
-        response.raise_for_status()
-        return response.json()
+        from .completion_wait import post_native
+
+        def observed_wait():
+            with (directory / "SNAPSHOT_WAIT.jsonl").open("a") as out:
+                out.write(
+                    json.dumps(
+                        {
+                            "status": "native_processing_pending",
+                            "canonical_events_observed": len(CanonicalJournal(directory).read()),
+                        }
+                    )
+                    + "\n"
+                )
+
+        return post_native(client, url, path, body, observed_wait)
 
     def events_with_visible_phrases():
         events = deepcopy(CanonicalJournal(directory).read())
@@ -204,6 +217,7 @@ def run_episode(db, shared):
         infrastructure_ok = True
         return {
             "task_id": task["task_id"],
+            "attempt_directory": str(directory),
             "family": task["family"],
             "scoreable": True,
             "score": score,
@@ -213,7 +227,21 @@ def run_episode(db, shared):
             "model_metrics": model_metrics,
         }
     finally:
-        services.stop()
+        try:
+            services.stop()
+        except TimeoutError:
+            from .resources import ResearchResources
+
+            for child in services.children:
+                ResearchResources.stop_child(child)
+        except subprocess.TimeoutExpired:
+            from .resources import ResearchResources
+
+            for child in services.children:
+                ResearchResources.stop_child(child)
+        for stream in services.logs:
+            if not stream.closed:
+                stream.close()
         client.close()
         if not infrastructure_ok:
             db.save(
@@ -251,7 +279,9 @@ def run_batch(config):
             continue
         # A partial episode requires an explicitly audited recovery, never a
         # silent reset or a normal-failure retry.
-        d = directory / task["task_id"]
+        d = directory / config.get("episode_attempt_directories", {}).get(
+            task["task_id"], task["task_id"]
+        )
         if d.exists():
             raise RuntimeError(
                 "Partial episode retained; explicit infrastructure recovery review required"

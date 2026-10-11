@@ -60,7 +60,11 @@ def main():
             freeze_path = (
                 review
                 / "freezes"
-                / ("B0_FREEZE.json" if stage == "b0" else "SFT1_EVAL_FREEZE.json")
+                / (
+                    source.get("b0_freeze_name", "B0_FREEZE.json")
+                    if stage == "b0"
+                    else "SFT1_EVAL_FREEZE.json"
+                )
             )
             if not freeze_path.exists():
                 repo = Path(source["repo"])
@@ -110,6 +114,7 @@ def main():
                     "recovery_rule": "incomplete infrastructure unit <=1, batch <=3; completed/normal model failures never rerun",
                     "integration_cpu_tests_passed": True,
                     "real_canary_verified": False,
+                    "infrastructure_recovery": source.get("infrastructure_recovery"),
                 }
                 write(freeze_path, freeze)
             else:

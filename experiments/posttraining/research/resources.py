@@ -126,7 +126,7 @@ class ResearchResources:
             port=free_port(),
             capability=secrets.token_hex(32),
             adapter=adapter,
-            gpu_active_seconds=8 * 3600,
+            gpu_active_seconds=self.config.get("remaining_gpu_seconds", 8 * 3600),
         )
         path = directory / "BACKEND_CONFIG.json"
         save(path, config)
@@ -182,7 +182,12 @@ class ResearchResources:
                 child.wait(timeout=20)
             except subprocess.TimeoutExpired:
                 os.killpg(child.pid, signal.SIGTERM)
-                child.wait(timeout=10)
+                try:
+                    child.wait(timeout=10)
+                except subprocess.TimeoutExpired:
+                    # Only a directly created owned process group is eligible.
+                    os.killpg(child.pid, signal.SIGKILL)
+                    child.wait(timeout=10)
 
     def close(self):
         for child in reversed(self.children):
