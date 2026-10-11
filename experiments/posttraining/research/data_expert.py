@@ -19,6 +19,20 @@ class DataVisibleContextError(RuntimeError):
     """Native visible evidence could not be read or explicitly attributed."""
 
 
+def model_visible_payload(value):
+    # The actual policy sanitizes native prompt text, rather than a standalone
+    # JSON mapping. Use that same existing text sanitizer on a native payload;
+    # no observations are inferred or repaired by this privacy operation.
+    if not isinstance(value, dict):
+        return redact(value)
+    prefix = "TOOL OBSERVATION\n"
+    sanitized = redact(prefix + json.dumps(value, ensure_ascii=False))
+    try:
+        return json.loads(sanitized[len(prefix):])
+    except json.JSONDecodeError as error:
+        raise DataVisibleContextError("Model-visible payload invalid after sanitization") from error
+
+
 def native_visible_calls(prompt):
     """Read only the native history/staged sections, without text inference."""
     from parlant.core.engines.alpha.prompt_builder import BuiltInSection
@@ -57,7 +71,7 @@ def native_visible_calls(prompt):
                 for c in tool_calls
             ):
                 raise DataVisibleContextError("Native visible tool call is invalid")
-            calls.extend(tool_calls)
+            calls.extend(dict(c, result=model_visible_payload(c["result"])) for c in tool_calls)
     return calls, present
 
 
@@ -77,7 +91,7 @@ def native_visible_facts(prompt, frame, trajectory):
             raise DataVisibleContextError("Preceding result has no policy/call binding") from error
         if step["episode_id"] != frame.episode_id:
             raise DataVisibleContextError("Cross-episode visible result")
-        payload = redact(result["result"].get("data", {}))
+        payload = model_visible_payload(result["result"].get("data", {}))
         if not isinstance(payload, dict) or payload.get("ok") is not True:
             continue
         indices = [i for i, c in enumerate(calls)

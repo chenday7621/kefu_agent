@@ -120,6 +120,17 @@ class NativeVisibleContextTests(unittest.TestCase):
         self.assertEqual(facts[0]["data"], redact(original["result"]["data"]["data"]))
         self.assertNotIn("private-fixture-token", json.dumps(facts))
 
+    def test_bound_identity_is_masked_like_actual_policy_prompt(self):
+        emitted, observation = tool_event()
+        observation["result"]["data"]["data"]["bound_customer_id"] = "private-identity-fixture"
+        prompt = PromptBuilder().add_staged_tool_events([emitted])
+        facts = native_visible_facts(prompt,
+             DecisionFrame("independent", "S", "T", 2, observations=(observation,)),
+             binding((observation,)))
+        self.assertNotIn("private-identity-fixture", redact(prompt.build()))
+        self.assertNotIn("private-identity-fixture", json.dumps(facts))
+        self.assertEqual(facts[0]["data"]["bound_customer_id"], "[REDACTED]")
+
     def test_readonly_first_data_attempt_recovers_all24_omitted_decisions(self):
         directory = Path("/nas/chenyi/posttraining-qwen/runs/20261011_164724_PT_B0_R1_CONTRACTFIX/datasets/verified-episodes/PTTRAIN-810001")
         if not directory.exists():
