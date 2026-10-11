@@ -1,0 +1,8 @@
+{
+  "source_plan": "QWEN_B0_LORA_SFT_EXECUTION_PLAN.md",
+  "review": "${REVIEW_DIRECTORY}",
+  "runtime": "${POSTTRAIN_DATA_ROOT}/runs/${RUN_ID}",
+  "repo_env": ".env",
+  "dev_bundle": "${DEV_V2_BUNDLE}",
+  "split_approval": "${REVIEW_DIRECTORY}/data/SPLIT_APPROVAL.json"
+}
