@@ -32,6 +32,6 @@ python -m experiments.posttraining.research.train --config "$POSTTRAIN_TRAIN_CON
 2. Use the explicitly approved `SPLIT_POLICY_V2.json`; register templates and episodes before generating data. Generic family overlap is allowed; semantic template overlap, DEV supervision, holdout use and cosmetic renaming remain prohibited.
 3. Complete the remaining integration/data/sanity orchestration and targeted model-free checks, commit the tested B0 version, then run the first formal task as the counted canary.
 
-The protocol stays at 30 candidate decisions, 12 user turns and 18 native tool calls per DEV-V2 episode. Failed model tasks remain failures; completed tasks are never replayed for score selection. Original APP/core/business migrations and scorer are unchanged.
+The protocol stays at 30 candidate decisions, 12 user turns and 18 native tool calls per DEV-V2 episode. Failed model tasks remain failures; completed tasks are never replayed for score selection. Core, business migrations and scorer remain unchanged. The user authorized exactly two Outbox payload type guards for PT-B0-R1-CONTRACTFIX; this APP change is a recorded exception, consistently used in B0, expert collection and reevaluation. See CONTRACT_FIX.md.
 
 The model remains official Qwen3-8B revision `b968826d9c46dd6066d109eabc6255188de91218`; bf16, no quantization, thinking disabled, greedy, `use_model_defaults=False`, max 1024 new tokens. One approved idle A100 at a time. The first LoRA configuration is fixed by the execution plan; no second SFT round, RL or deployment.
