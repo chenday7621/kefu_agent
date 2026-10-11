@@ -26,8 +26,11 @@ DEV, Oracle solutions, B0 trajectories and corrected DEV answers are excluded.
 
 Acquisition stopped during the 62nd TRAIN fixture materialization because of
 a PostgreSQL connection timeout followed by a cleanup `ObjectInUse` error.
-The batch's three infrastructure recoveries were already used. The remaining
-owned database was backed up and cleaned without starting an episode. This is
+Three earlier DATA recovery actions remain recorded. The explicit three-recovery
+limit in plan section 6.2 applies to B0; it is not cited as an explicit DATA
+authorization limit. The new PG materialization/cleanup failure is the actual
+stop reason. The remaining owned database was backed up and cleaned without
+starting an episode. This is
 an infrastructure stop, not a policy score or an SFT outcome. No LoRA training
 or post-SFT evaluation started; incomplete data cannot satisfy the unchanged
 training minimum. Full records, data and database backups remain outside Git.
