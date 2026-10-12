@@ -7,12 +7,14 @@ import json
 from pathlib import Path
 import shutil
 import subprocess
+import sys
 
 from .data_controller import collect, DataCollectionBudgetStop
 from .data_freeze import assemble
-from .resources import ResearchResources
 from .runner import preflight, write
 from .split_policy import check_episode, register
+from .data_schedule import scheduled_tasks, VerifiedPrefixStop
+from .data_infrastructure import record_errors, DataResources
 
 
 def digest(path):
@@ -65,6 +67,7 @@ def run(plan, definitions):
     config = json.loads(Path(plan["experiment_config"]).read_text())
     config.update(collection_directory=str(runtime / "datasets/verified-episodes"),
                   dataset_output=str(runtime / "datasets/sft1-frozen"))
+    tasks = scheduled_tasks(config, tasks)
     data_review = review / "data"
     data_review.mkdir(exist_ok=True)
     frozen_files = sorted(Path(config["repo"]).joinpath("experiments/posttraining/research").glob("*.py"))
@@ -73,18 +76,19 @@ def run(plan, definitions):
               "source_sha256": {str(p.relative_to(config["repo"])): digest(p) for p in frozen_files},
               "app_outbox_sha256": digest(Path(config["repo"]) / "apps/retail_demo/outbox.py"),
               "scenario_sha256": definition["scenario_sha256"], "registry_sha256": digest(Path(definitions) / "SPLIT_REGISTRY.json"),
-              "execution_order": definition["execution_order"], "budget": config["authorization"],
+              "execution_order": [t["episode_id"] for t in tasks], "budget": config["authorization"],
               "policy_source": "synthetic_rule_expert_current_visible_native_events_only",
               "reference_provider": "same native DemoDeepSeek as PT-B0-R1-CONTRACTFIX",
               "candidate_budget": 30, "user_turn_budget": 12, "native_tool_budget": 18,
               "qwen_generations": 0, "dev_supervision": False, "holdout_generated": False}
-    freeze_path = data_review / "DATA_COLLECTION_FREEZE.json"
+    freeze_path = data_review / ("DATA_COLLECTION_FREEZE_INFRA_V1.json" if config.get("data_collection_addendum")
+                                else "DATA_COLLECTION_FREEZE.json")
     if freeze_path.exists():
         raise RuntimeError("Existing data freeze requires explicit audited recovery; no automatic replay")
     if shutil.disk_usage(runtime).free < 10 * 1024**3:
         raise RuntimeError("NAS reserve below10GiB")
     write(freeze_path, freeze)
-    resources = ResearchResources(runtime, config)
+    resources = DataResources(runtime, config)
     try:
         config.update(admin_dsn=resources.start_pg(), owned_cluster_marker=str(resources.marker))
         config_path = runtime / "datasets/DATA_CONTROLLER_CONFIG.json"
@@ -93,14 +97,15 @@ def run(plan, definitions):
         state.update(status="DATA_COLLECTION_RUNNING")
         write(state_path, state)
         collection_stop = None
+        stop = VerifiedPrefixStop(config, registry, data_review) if config.get("data_collection_addendum") else None
         try:
-            collect(config, tasks)
+            collect(config, tasks, after_episode=stop)
         except DataCollectionBudgetStop as exc:
             # Only a between-episode known-cost stop is eligible. All incomplete
             # infrastructure/provider failures still pause without stitching.
             collection_stop = str(exc)
         episodes = [json.loads(s) for s in (Path(config["collection_directory"]) / "EPISODES.jsonl").read_text().splitlines()]
-        manifest = assemble(config, registry, episodes)
+        manifest = stop.manifest if stop and stop.manifest and stop.manifest["status"] == "DATASET_VERIFIED" else assemble(config, registry, episodes)
         manifest["acquisition_budget_stop"] = collection_stop
         manifest["planned_episodes"] = len(tasks)
         manifest["actual_complete_episodes"] = len(episodes)
@@ -121,7 +126,11 @@ def run(plan, definitions):
         write(state_path, state)
         raise
     finally:
-        resources.close()
+        primary = sys.exception()
+        try:
+            resources.close()
+        except BaseException as cleanup:
+            record_errors(data_review, primary, [cleanup], "DATA_CLUSTER_CLEANUP_ERRORS.json")
 
 
 def main():

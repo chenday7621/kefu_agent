@@ -4,31 +4,21 @@ from copy import deepcopy
 import json
 from pathlib import Path
 import time
+import sys
 from uuid import uuid4
 
 import requests
-from apps.retail_demo.db import connect
-from psycopg.types.json import Jsonb
 
 from ..dev_controller import Services, free_port, save
 from ..episode_evidence import CanonicalJournal, audit_trajectory
-from ..episode_state import EpisodeDatabase
 from .completion_wait import post_native
 from .data_audit import business_report
 from .data_user import DataUser
+from .data_infrastructure import TrainingDatabase, record_errors, error_record
 
 
 class DataCollectionBudgetStop(RuntimeError):
     """Known cost reaches the predeclared non-evaluation acquisition reserve."""
-
-
-class TrainingDatabase(EpisodeDatabase):
-    def materialize(self):
-        initial = super().materialize()
-        with connect(self.url) as c:
-            c.execute("UPDATE parlant_sessions SET doc=jsonb_set(doc,'{metadata,posttraining_split}',%s) WHERE id=%s",
-                      (Jsonb(self.task["split"]), self.task["initial_db_fixture"]["trusted_context"]["session_id"]))
-        return initial
 
 
 def run_episode(db, shared):
@@ -64,6 +54,8 @@ def run_episode(db, shared):
         return rows
 
     try:
+        save(directory / "DATA_NATIVE_STAGE_STARTED.json", {"episode_id": task["episode_id"],
+             "initialization_ready": True, "initialization_retry_forbidden_from_here": True})
         services.start("experiments.posttraining.episode_mcp", config["mcp_port"])
         services.start("experiments.posttraining.research.data_app", config["app_port"])
         deadline = time.monotonic() + 120
@@ -131,18 +123,34 @@ def run_episode(db, shared):
                 "counts_as_baseline": False}
     finally:
         from .resources import ResearchResources
-
+        primary = sys.exception()
+        cleanup_errors = []
         for child in reversed(services.children):
-            ResearchResources.stop_child(child)
+            try:
+                ResearchResources.stop_child(child)
+            except BaseException as error:
+                cleanup_errors.append(error)
         for stream in services.logs:
-            stream.close()
-        client.close()
+            try:
+                stream.close()
+            except BaseException as error:
+                cleanup_errors.append(error)
+        try:
+            client.close()
+        except BaseException as error:
+            cleanup_errors.append(error)
         if not completed:
-            save(directory / "STOP_EVIDENCE.json", {"events": CanonicalJournal(directory).read(),
-                                                    "final_db": db.project()})
+            try:
+                save(directory / "STOP_EVIDENCE.json", {"events": CanonicalJournal(directory).read(),
+                                                        "final_db": db.project()})
+            except BaseException as error:
+                cleanup_errors.append(error)
+                save(directory / "STOP_EVIDENCE_UNAVAILABLE.json", {"error": error_record(error)})
+        if primary is not None or cleanup_errors:
+            record_errors(directory, primary, cleanup_errors, "DATA_SERVICE_ERRORS.json")
 
 
-def collect(config, tasks):
+def collect(config, tasks, after_episode=None):
     root = Path(config["collection_directory"])
     root.mkdir(parents=True, exist_ok=True)
     output = root / "EPISODES.jsonl"
@@ -160,12 +168,30 @@ def collect(config, tasks):
             raise RuntimeError("DATA_UNKNOWN_USAGE_STOP: unresolved provider use remains reserved")
         if summary["estimated_or_reserved_usd"] >= 7.8:
             raise DataCollectionBudgetStop("DATA_BUDGET_STOP: no new episode; protect evaluation reserve")
-        db = TrainingDatabase(config["admin_dsn"], "ptdev_" + uuid4().hex[:16], task, path)
+        if config.get("data_storage_floor_bytes"):
+            import shutil
+            if shutil.disk_usage(root).free < config["data_storage_floor_bytes"]:
+                raise RuntimeError("DATA_RESOURCE_BLOCKED: acquisition and training storage reserve")
+        db = None
         try:
-            db.materialize()
+            db = TrainingDatabase(config["admin_dsn"], "ptdev_" + uuid4().hex[:16], task, path,
+                                  owned_marker=config["owned_cluster_marker"], run_id=config["run_id"])
+            db.initialize_and_materialize()
             result = run_episode(db, config)
         finally:
-            db.cleanup()
+            primary = sys.exception()
+            cleanup_errors = []
+            if db is not None:
+                try:
+                    if primary is not None and not (path / "DATA_NATIVE_STAGE_STARTED.json").exists():
+                        db.backup_failed_initialization()
+                    db.cleanup()
+                except BaseException as error:
+                    cleanup_errors.append(error)
+            if path.exists() and (primary is not None or cleanup_errors):
+                record_errors(path, primary, cleanup_errors)
         with output.open("a") as out:
             out.write(json.dumps(result, ensure_ascii=False) + "\n")
             out.flush()
+        if after_episode is not None and after_episode():
+            return
