@@ -1,10 +1,36 @@
 """Planned TRAIN-only LoRA binding check; logits forwards, no generation/API."""
 
 import argparse
+from contextlib import contextmanager
 import hashlib
 import json
 from pathlib import Path
 import time
+
+
+def require_frozen_parameters(model):
+    if any(p.requires_grad for p in model.parameters()):
+        raise RuntimeError("Inference adapter has trainable parameters")
+
+
+@contextmanager
+def frozen_adapter_comparison(model):
+    """Preserve known inference flags across PEFT's temporary layer toggle."""
+    parameters = tuple(model.named_parameters())
+    if any(p.requires_grad for _, p in parameters):
+        raise RuntimeError("Inference adapter has trainable parameters before comparison")
+    flags = {name: (p, p.requires_grad) for name, p in parameters}
+    try:
+        with model.disable_adapter():
+            yield
+    finally:
+        try:
+            current = {name: id(p) for name, p in model.named_parameters()}
+        finally:
+            for parameter, flag in flags.values():
+                parameter.requires_grad_(flag)
+        if current != {name: id(p) for name, (p, _) in flags.items()}:
+            raise RuntimeError("Inference parameter collection/identity changed during comparison")
 
 
 def verify(config, manifest, trained, output):
@@ -34,9 +60,10 @@ def verify(config, manifest, trained, output):
         reference = base(**kwargs).logits.float().cpu()
     model = PeftModel.from_pretrained(base, adapter, is_trainable=False)
     model.eval()
+    require_frozen_parameters(model)
     if model.active_adapters != ["default"]:
         raise RuntimeError("Unexpected active LoRA adapter")
-    with model.disable_adapter(), torch.inference_mode():
+    with frozen_adapter_comparison(model), torch.inference_mode():
         disabled = model(**kwargs).logits.float().cpu()
     torch.testing.assert_close(reference, disabled, rtol=1e-4, atol=1e-4)
     if any(p.requires_grad for p in model.parameters()):
@@ -70,6 +97,8 @@ def verify(config, manifest, trained, output):
               "prompt_tokens": row["prompt_length"], "active_adapters": model.active_adapters,
               "adapter_hashes": hashes, "dtype": str(model.dtype), "device": str(model.device),
               "disabled_matches_base": True, "tolerance": {"rtol": 1e-4, "atol": 1e-4},
+              "initial_parameters_frozen": True, "restored_parameters_frozen": True,
+              "comparison_parameter_identity_unchanged": True,
               "nonzero_lora_B_modules": len(nonzero), "participating_lora_modules": len(participating),
               "enabled_max_abs_logit_delta": (enabled-reference).abs().max().item(),
               "delta_required_for_pass": False, "generations": 0, "api_calls": 0,
