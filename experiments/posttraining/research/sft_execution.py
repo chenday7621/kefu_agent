@@ -6,6 +6,7 @@ import hashlib
 import json
 import math
 from pathlib import Path
+import re
 import shutil
 import time
 
@@ -17,6 +18,16 @@ from ..policy import MODEL_REVISION
 
 def write(path, value):
     Path(path).write_text(json.dumps(value, ensure_ascii=False, indent=2) + "\n")
+
+
+def checkpoint_directories(output):
+    """Native checkpoint directories only; adjacent audit files are evidence."""
+    return sorted(
+        (p for p in Path(output).glob("checkpoint-*")
+         if not p.is_symlink() and p.is_dir()
+         and re.fullmatch(r"checkpoint-[0-9]+", p.name)),
+        key=lambda p: int(p.name.split("-")[1]),
+    )
 
 
 def model_and_tokenizer(config):
@@ -167,7 +178,7 @@ def formal(config, rows, manifest, resume=None):
             return control
 
         def on_save(self, args, state, control, **kwargs):
-            checkpoints = sorted(output.glob("checkpoint-*"), key=lambda p: int(p.name.split("-")[-1]))
+            checkpoints = checkpoint_directories(output)
             for path in checkpoints:
                 record = {str(p.relative_to(path)): hashlib.sha256(p.read_bytes()).hexdigest()
                           for p in path.rglob("*") if p.is_file()}
