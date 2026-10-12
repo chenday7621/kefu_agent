@@ -193,5 +193,11 @@ def collect(config, tasks, after_episode=None):
         with output.open("a") as out:
             out.write(json.dumps(result, ensure_ascii=False) + "\n")
             out.flush()
+        if config.get("data_max_episode_bytes"):
+            actual_bytes = sum(p.stat().st_size for p in path.rglob("*") if p.is_file())
+            if actual_bytes > config["data_max_episode_bytes"]:
+                save(path / "DATA_STORAGE_STOP.json", {"actual_bytes": actual_bytes,
+                     "limit_bytes": config["data_max_episode_bytes"], "complete_result_preserved": True})
+                raise RuntimeError("DATA_RESOURCE_BLOCKED: episode storage cap exceeded")
         if after_episode is not None and after_episode():
             return

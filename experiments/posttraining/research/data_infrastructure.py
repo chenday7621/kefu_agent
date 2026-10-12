@@ -90,22 +90,25 @@ class TrainingDatabase(EpisodeDatabase):
     def inspect(self):
         owner = self.verify_owned_cluster()
         with psycopg.connect(self.admin_dsn, autocommit=True, application_name=self.application_name + ":admin") as conn:
-            row = conn.execute("SELECT pg_get_userbyid(datdba) FROM pg_database WHERE datname=%s", (self.name,)).fetchone()
-            if row is None:
-                return {"exists": False, "migrations": [], "counts": {}}
-            if row[0] != owner:
-                raise DataStateUnknown("Episode database has a different owner")
             deadline = time.monotonic() + 5
             while True:
-                sessions = conn.execute("SELECT application_name,usename,backend_type FROM pg_stat_activity WHERE datname=%s", (self.name,)).fetchall()
+                # CREATE DATABASE runs on postgres, not the destination DB.
+                # Drain that exact owned admin connection too before deciding
+                # whether a timed-out creation committed or may still commit.
+                sessions = conn.execute("SELECT application_name,usename,backend_type FROM pg_stat_activity WHERE (datname=%s OR application_name=%s) AND pid<>pg_backend_pid()", (self.name, self.application_name + ":admin")).fetchall()
                 clients = [(app, user) for app, user, kind in sessions if kind == "client backend"]
-                if any(app != self.application_name or user != owner for app, user in clients):
+                if any(app not in (self.application_name, self.application_name + ":admin") or user != owner for app, user in clients):
                     raise DataStateUnknown("Foreign episode connection; refuse retry/termination")
                 if not clients:
                     break
                 if time.monotonic() > deadline:
                     raise DataStateUnknown("Prior initialization connection remains; commit state unknown")
                 time.sleep(0.1)
+            row = conn.execute("SELECT pg_get_userbyid(datdba) FROM pg_database WHERE datname=%s", (self.name,)).fetchone()
+            if row is None:
+                return {"exists": False, "migrations": [], "counts": {}}
+            if row[0] != owner:
+                raise DataStateUnknown("Episode database has a different owner")
         with connect(self.url) as conn:
             conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY")
             exists = conn.execute("SELECT to_regclass('retail_demo.schema_migrations') AS name").fetchone()["name"]
