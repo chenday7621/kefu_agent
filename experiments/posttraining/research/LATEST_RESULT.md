@@ -1,5 +1,5 @@
 # First policy SFT experiment
 
-Status: `EXPERIMENT_BLOCKED`. PT-B0-R1-CONTRACTFIX: 29/30; PT-SFT1: 0/30. Estimated/reserved DeepSeek cost: USD6.337684; total authorization USD10.
+Status: `EXPERIMENT_BLOCKED`. B0: 29/30. SFT1 reevaluation: 0/30. Cumulative estimated/reserved DeepSeek cost USD6.337684, authorization USD10.
 
-Shared capabilities, concrete causal-template and episode isolation; limited DEV comparison. Explicit authorized exceptions: two Outbox error-payload type checks and versioned experiment boundary rejection. No clean-test claim, second SFT, RL or deployment. Full data/trajectories/models/database remain outside Git.
+Shared business capabilities; concrete causal-template and episode isolation. Fixed 20-task main comparison; original nine contract-affected tasks and one missing B0 task separate. DATA PostgreSQL recovery and visible-context reader fixes are explicit infrastructure changes, not SFT gains. One formal epoch only; no second SFT, RL, holdout, legacy run, B0 rerun or deployment. Generated data, weights, secrets, databases and complete trajectories remain outside Git.
