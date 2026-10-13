@@ -1,0 +1,240 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "posttraining.exact.phase1b",
+  "title": "Exact policy step append-only snapshot journal",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "episode_id",
+    "session_id",
+    "turn_id",
+    "policy_step_id",
+    "schema_name",
+    "candidate_tool_id",
+    "candidate_tool_name",
+    "rendered_prompt",
+    "prompt_hash",
+    "prompt_hash_scope",
+    "model_name",
+    "model_revision",
+    "parse_status",
+    "timestamp",
+    "parent_policy_step_id",
+    "raw_model_output",
+    "proposed_action",
+    "proposed_tool_name",
+    "actual_executed_tool_call_id",
+    "actual_tool_name",
+    "tool_result_id",
+    "next_policy_step_id",
+    "terminal_status",
+    "failure_type",
+    "parent_policy_step_ids",
+    "prompt_messages",
+    "conversation_history_refs",
+    "relevant_tool_observations",
+    "proposed_calls",
+    "actual_executed_calls",
+    "tool_results",
+    "next_policy_step_ids",
+    "available_tool_schema",
+    "loss_design",
+    "parsed_schema_output",
+    "proposed_arguments",
+    "actual_gate_result",
+    "actual_arguments",
+    "schema_version",
+    "record_sequence",
+    "engine_iteration",
+    "final_reward",
+    "tool_result",
+    "generation_origin"
+  ],
+  "properties": {
+    "episode_id": {
+      "type": "string"
+    },
+    "session_id": {
+      "type": "string"
+    },
+    "turn_id": {
+      "type": "string"
+    },
+    "policy_step_id": {
+      "type": "string"
+    },
+    "schema_name": {
+      "type": "string"
+    },
+    "candidate_tool_id": {
+      "type": "string"
+    },
+    "candidate_tool_name": {
+      "type": "string"
+    },
+    "rendered_prompt": {
+      "type": "string"
+    },
+    "prompt_hash": {
+      "type": "string"
+    },
+    "prompt_hash_scope": {
+      "type": "string"
+    },
+    "model_name": {
+      "type": "string"
+    },
+    "model_revision": {
+      "type": "string"
+    },
+    "parse_status": {
+      "type": "string"
+    },
+    "timestamp": {
+      "type": "string"
+    },
+    "parent_policy_step_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "raw_model_output": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "proposed_action": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "proposed_tool_name": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "actual_executed_tool_call_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "actual_tool_name": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "tool_result_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "next_policy_step_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "terminal_status": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "failure_type": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "parent_policy_step_ids": {
+      "type": "array"
+    },
+    "prompt_messages": {
+      "type": "array"
+    },
+    "conversation_history_refs": {
+      "type": "array"
+    },
+    "relevant_tool_observations": {
+      "type": "array"
+    },
+    "proposed_calls": {
+      "type": "array"
+    },
+    "actual_executed_calls": {
+      "type": "array"
+    },
+    "tool_results": {
+      "type": "array"
+    },
+    "next_policy_step_ids": {
+      "type": "array"
+    },
+    "available_tool_schema": {
+      "type": "object"
+    },
+    "loss_design": {
+      "type": "object"
+    },
+    "parsed_schema_output": {
+      "type": [
+        "object",
+        "null"
+      ]
+    },
+    "proposed_arguments": {
+      "type": [
+        "object",
+        "null"
+      ]
+    },
+    "actual_gate_result": {
+      "type": [
+        "object",
+        "null"
+      ]
+    },
+    "actual_arguments": {
+      "type": [
+        "object",
+        "null"
+      ]
+    },
+    "schema_version": {
+      "const": "posttraining.exact.v1"
+    },
+    "record_sequence": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "engine_iteration": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "final_reward": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "tool_result": {},
+    "generation_origin": {
+      "enum": [
+        "fixture",
+        "disabled",
+        "interface",
+        "local_model",
+        "unverified_backend",
+        "local_qwen"
+      ]
+    }
+  },
+  "$comment": "Fold by policy_step_id/record_sequence. Scalar IDs populated only for a single edge; arrays authoritative for multiple calls/parents/next steps. Input-only system/user/observations; future loss spans unavailable. Explicit IDs, no nearest LLM lookup."
+}

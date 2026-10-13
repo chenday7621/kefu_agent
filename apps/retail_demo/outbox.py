@@ -56,6 +56,7 @@ class Outbox:
                 # offer; the worker can deliver the earlier submission separately.
                 if any(
                     tool.get("tool_id") == "retail-demo-business:check_return_eligibility"
+                    and isinstance(tool.get("result", {}).get("data"), dict)
                     and tool.get("result", {}).get("data", {}).get("ok") is True
                     for tool in calls
                 ):
@@ -64,7 +65,7 @@ class Outbox:
                     if tool.get("tool_id") not in ("retail-demo-business:create_return_request", "retail-demo-business:submit_confirmed_return"):
                         continue
                     result = tool.get("result", {}).get("data", {})
-                    if result.get("ok") is not True:
+                    if not isinstance(result, dict) or result.get("ok") is not True:
                         return None
                     request = (result.get("data") or {}).get("request") or {}
                     try:

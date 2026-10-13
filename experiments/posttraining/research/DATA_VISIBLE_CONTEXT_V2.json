@@ -1,0 +1,19 @@
+{
+  "version": "DATA_VISIBLE_CONTEXT_V2.2",
+  "native_sections": [
+    "INTERACTION_HISTORY",
+    "STAGED_EVENTS"
+  ],
+  "reader_source_sha256": "6f0e38e40f1040ae6fd3848906ff23841f79d0527cbc6173f95ae8b632eec0ab",
+  "expert_decision_rule_unchanged": true,
+  "prompt_adapter_decoder_unchanged": true,
+  "source_origin": "synthetic_rule_expert",
+  "unknown_section_format": "explicit_contract_error",
+  "unbound_visible_result": "explicit_contract_error",
+  "episode_and_result_ids": "explicit_same_episode_binding",
+  "historical_failed_data": "retained_and_excluded; not relabeled or rerun",
+  "sft_comparison": "pre-frozen20 paired DEV units; affected9 and missing1 separately",
+  "model_or_api_calls_for_verification": 0,
+  "model_input_body_privacy_equivalence": "Same existing policy text redactor; native payload JSON remains structured",
+  "derived_input_reference": "Data-only model-visible copy with unchanged causal IDs; original raw execution evidence preserved; FRAME reset before gate"
+}

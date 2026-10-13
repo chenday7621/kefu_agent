@@ -1,0 +1,199 @@
+{
+  "version": "split.policy.v2",
+  "status": "SPLIT_APPROVED",
+  "old_split_sha256": "d72d81949b9e082f6b206e6d6ca3d7376541bf02f9f430e7eb184a44e2cc8742",
+  "shared_capabilities_allowed": true,
+  "isolation_units": [
+    "capability_family",
+    "causal_template_group",
+    "episode_id"
+  ],
+  "group_ownership": "template/rewrites/variants/replays/all decisions remain in one split",
+  "normalization_dimensions": [
+    "initial_visible_information",
+    "ambiguity_missing_structure",
+    "user_change_timing",
+    "condition_dependencies",
+    "confirmation_relationship",
+    "terminal_goal"
+  ],
+  "cosmetic_changes_create_new_group": false,
+  "tool_sequence_alone_defines_group": false,
+  "dev_oracle_b0_supervision_allowed": false,
+  "holdout_reserved": [
+    "H1",
+    "H2",
+    "H3",
+    "H4"
+  ],
+  "holdout_instantiated": false,
+  "legacy_training_or_selection": false,
+  "interpretation": "shared business capabilities with causal-template/episode isolation; limited exposed DEV comparison",
+  "authorization": {
+    "source": "explicit user-approved split amendment",
+    "approved": true,
+    "budget_increase": false
+  },
+  "registered_template_definitions": [
+    {
+      "causal_template_group": "TRAIN.preview_only_complete_intent",
+      "split": "train",
+      "capability_family": "order_return_workflow",
+      "source": "independently_authored_public_business_rules",
+      "reserved_holdout_overlap": [],
+      "descriptor": {
+        "initial_visible_information": [
+          "order_id",
+          "item_id",
+          "quantity",
+          "reason",
+          "explicit_preview_only_permission"
+        ],
+        "ambiguity_missing_structure": "none",
+        "user_change_timing": "no_followup",
+        "condition_dependencies": [
+          "read_order",
+          "validate_known_line",
+          "create_preview"
+        ],
+        "confirmation_relationship": "no_user_confirmation_allowed",
+        "terminal_goal": "one_valid_preview_without_request"
+      },
+      "normalized_fingerprint": "17787fb6a49c4a237bad46ece8b58b776ce83fc94ec174cbaef87a3c278a03d0"
+    },
+    {
+      "causal_template_group": "TRAIN.unique_product_name_return",
+      "split": "train",
+      "capability_family": "order_return_workflow",
+      "source": "independently_authored_public_business_rules",
+      "reserved_holdout_overlap": [],
+      "descriptor": {
+        "initial_visible_information": [
+          "order_id",
+          "unique_product_name_selector",
+          "quantity",
+          "reason"
+        ],
+        "ambiguity_missing_structure": "item_id_resolved_by_visible_tool_product_match",
+        "user_change_timing": "confirm_after_visible_preview",
+        "condition_dependencies": [
+          "read_order",
+          "unique_product_name_match",
+          "create_preview",
+          "exact_confirm",
+          "submit"
+        ],
+        "confirmation_relationship": "latest_visible_preview_matching_named_product",
+        "terminal_goal": "one_confirmed_request"
+      },
+      "normalized_fingerprint": "2e192ae8b2083e566a93412513369198ad19a9045f1ed3b316c740a8b15dafe4"
+    },
+    {
+      "causal_template_group": "TRAIN.latest_delivered_order_return",
+      "split": "train",
+      "capability_family": "order_return_workflow",
+      "source": "independently_authored_public_business_rules",
+      "reserved_holdout_overlap": [],
+      "descriptor": {
+        "initial_visible_information": [
+          "latest_delivered_order_selector",
+          "unique_product_name_selector",
+          "quantity",
+          "reason"
+        ],
+        "ambiguity_missing_structure": "order_and_line_resolved_by_visible_order_listing_and_details",
+        "user_change_timing": "confirm_after_visible_preview",
+        "condition_dependencies": [
+          "list_orders",
+          "unique_latest_delivered",
+          "read_order",
+          "unique_product_match",
+          "create_preview",
+          "exact_confirm",
+          "submit"
+        ],
+        "confirmation_relationship": "latest_visible_preview_matching_explicit_selection_rule",
+        "terminal_goal": "one_confirmed_request"
+      },
+      "normalized_fingerprint": "6ff5f200cf6c4f064b7ae93926d7b2749e4f56e9ac662d840671976271eb1ed8"
+    },
+    {
+      "causal_template_group": "TRAIN.all_available_single_line_return",
+      "split": "train",
+      "capability_family": "order_return_workflow",
+      "source": "independently_authored_public_business_rules",
+      "reserved_holdout_overlap": [],
+      "descriptor": {
+        "initial_visible_information": [
+          "order_id",
+          "item_id",
+          "all_currently_available_quantity_rule",
+          "reason"
+        ],
+        "ambiguity_missing_structure": "quantity_derived_from_current_visible_line_inventory",
+        "user_change_timing": "confirm_after_visible_preview",
+        "condition_dependencies": [
+          "read_order",
+          "available_quantity_arithmetic",
+          "create_preview",
+          "exact_confirm",
+          "submit"
+        ],
+        "confirmation_relationship": "latest_visible_preview_matching_all_available_rule",
+        "terminal_goal": "one_confirmed_request"
+      },
+      "normalized_fingerprint": "9a8793197e73a9ac8fb1e565098df2d580c30279504d94b8542606e7f6ea0ab6"
+    },
+    {
+      "causal_template_group": "VALID.preview_reason_clarification",
+      "split": "sft_valid",
+      "capability_family": "order_return_workflow",
+      "source": "independently_authored_public_business_rules",
+      "reserved_holdout_overlap": [],
+      "descriptor": {
+        "initial_visible_information": [
+          "order_id",
+          "item_id",
+          "quantity",
+          "explicit_preview_only_permission"
+        ],
+        "ambiguity_missing_structure": "reason_unknown_until_actual_clarification",
+        "user_change_timing": "reason_after_agent_question_before_preview",
+        "condition_dependencies": [
+          "read_order",
+          "wait_for_reason",
+          "create_preview"
+        ],
+        "confirmation_relationship": "no_user_confirmation_allowed",
+        "terminal_goal": "one_valid_preview_without_request"
+      },
+      "normalized_fingerprint": "a17e0760373bf1384c0e3486b427207470d3e59b45cbf431083dc28fff46c061"
+    },
+    {
+      "causal_template_group": "VALID.preview_quantity_after_order_read",
+      "split": "sft_valid",
+      "capability_family": "order_return_workflow",
+      "source": "independently_authored_public_business_rules",
+      "reserved_holdout_overlap": [],
+      "descriptor": {
+        "initial_visible_information": [
+          "order_id",
+          "item_id",
+          "reason",
+          "wait_for_user_quantity_after_order_read",
+          "explicit_preview_only_permission"
+        ],
+        "ambiguity_missing_structure": "quantity_unknown_until_actual_order_observation",
+        "user_change_timing": "quantity_after_actual_order_read_before_preview",
+        "condition_dependencies": [
+          "read_order",
+          "wait_for_user_quantity",
+          "create_preview"
+        ],
+        "confirmation_relationship": "no_user_confirmation_allowed",
+        "terminal_goal": "one_valid_preview_without_request"
+      },
+      "normalized_fingerprint": "798f93f4ff86624badabc422e29e51d871f4b9703437902e6da26c74b10256a7"
+    }
+  ]
+}

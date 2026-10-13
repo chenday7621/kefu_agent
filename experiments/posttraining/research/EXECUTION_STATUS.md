@@ -1,0 +1,13 @@
+# Historical first formal B0 attempt: protocol pause
+
+The user approved V2 template/episode isolation and configured the model credential. The original split and exposed 30-task DEV/scorer remain unchanged. Four new TRAIN template groups and two SFT-VALID groups were registered; 200 + 40 independent logical scenario definitions were generated outside Git. They are not collected or verified supervision.
+
+The first B0 task has two incomplete attempts. The initial controller completion wait was too short for six serialized candidates; its original evidence was preserved and one infrastructure recovery was used after a wait-only fix. The recovery exposed a frozen APP failure contract: the native ToolCaller returns a string error after the ownership guard rejects an invalid operation ID, while Outbox.for_submission_trace expects an object and calls .get. Ordinary reply persistence then fails.
+
+No APP/core fix was applied. CPU tests reproduce the actual string failure and show that the existing structured rejection returns no receipt. A two-guard proposal and its real policy → gate → failed result evidence are retained in the private review. Explicit authorization and a newly frozen B0 version are required before changing that frozen path. Old partial attempts must not be mixed into new formal metrics.
+
+At this checkpoint: zero formally completed B0 tasks, 27 completed local Qwen generations across both attempts, five physical native DeepSeek draft requests, conservative estimated cost USD0.046162688, no unknown/in-flight usage, USD2 evaluation reserve intact. Actual provider billing remains unavailable. Three real MCP order reads and six native execution attempts were recorded; rejected attempts were not counted as successful writes. Both episode databases and research services were cleaned up. The selected GPU is free.
+
+No SFT data collection, LoRA training or reevaluation ran. The rule expert and generator have CPU checks only; collection, real-data admission and training sanity still need completion. No performance comparison or improvement is claimed. The experiment preflight refuses the retained protocol blocker rather than silently retrying the incomplete task.
+
+The user subsequently authorized the two Outbox type guards and a separate PT-B0-R1-CONTRACTFIX. The historical facts above are preserved; the new version requires targeted real PG/MCP/native reply persistence regression before a fresh fixed-order baseline. The cumulative USD10 ledger is carried forward, with USD2 reserved for reevaluation. See CONTRACT_FIX.md and the new private versioned run state for current progress.
